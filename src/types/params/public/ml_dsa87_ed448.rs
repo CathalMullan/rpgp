@@ -1,15 +1,29 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use ml_dsa::MlDsa87;
 
 use crate::{errors::Result, parsing_reader::BufReadParsing, ser::Serialize};
 
-#[derive(derive_more::Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct MlDsa87Ed448PublicParams {
-    #[debug("{}", hex::encode(ed448.as_bytes()))]
     pub ed448: cx448::VerifyingKey,
-    #[debug("{}", hex::encode(ml_dsa.encode()))]
     pub ml_dsa: Box<ml_dsa::VerifyingKey<MlDsa87>>,
+}
+
+impl fmt::Debug for MlDsa87Ed448PublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MlDsa87Ed448PublicParams")
+            .field(
+                "ed448",
+                &format_args!("{}", hex::encode(self.ed448.as_bytes())),
+            )
+            .field(
+                "ml_dsa",
+                &format_args!("{}", hex::encode(self.ml_dsa.encode())),
+            )
+            .finish()
+    }
 }
 
 impl Eq for MlDsa87Ed448PublicParams {}

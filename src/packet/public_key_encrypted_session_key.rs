@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -32,7 +33,7 @@ use crate::{
 ///   Protected Data Packets](https://www.rfc-editor.org/rfc/rfc9580.html#name-version-1-symmetrically-enc).
 /// - V6 PKESK are used in combination with [version 2 Symmetrically Encrypted and Integrity
 ///   Protected Data Packets](https://www.rfc-editor.org/rfc/rfc9580.html#name-version-2-symmetrically-enc).
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum PublicKeyEncryptedSessionKey {
     V3 {
         packet_header: PacketHeader,
@@ -50,11 +51,50 @@ pub enum PublicKeyEncryptedSessionKey {
 
     Other {
         packet_header: PacketHeader,
-        #[debug("{:X}", version)]
         version: u8,
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for PublicKeyEncryptedSessionKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V3 {
+                packet_header,
+                id,
+                pk_algo,
+                values,
+            } => f
+                .debug_struct("V3")
+                .field("packet_header", packet_header)
+                .field("id", id)
+                .field("pk_algo", pk_algo)
+                .field("values", values)
+                .finish(),
+            Self::V6 {
+                packet_header,
+                fingerprint,
+                pk_algo,
+                values,
+            } => f
+                .debug_struct("V6")
+                .field("packet_header", packet_header)
+                .field("fingerprint", fingerprint)
+                .field("pk_algo", pk_algo)
+                .field("values", values)
+                .finish(),
+            Self::Other {
+                packet_header,
+                version,
+                data,
+            } => f
+                .debug_struct("Other")
+                .field("packet_header", packet_header)
+                .field("version", &format_args!("{:X}", version))
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
 }
 
 impl PublicKeyEncryptedSessionKey {

@@ -1,4 +1,5 @@
 use std::cmp::PartialEq;
+use std::fmt;
 
 use hkdf::HkdfExtract;
 use log::debug;
@@ -19,11 +20,18 @@ use crate::{
 pub const KEY_LEN: usize = 32;
 
 /// Secret key for X25519
-#[derive(Clone, derive_more::Debug)]
+#[derive(Clone)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct SecretKey {
-    #[debug("..")]
     secret: StaticSecret,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("secret", &format_args!(".."))
+            .finish()
+    }
 }
 
 impl From<&SecretKey> for X25519PublicParams {

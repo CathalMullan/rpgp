@@ -1,3 +1,5 @@
+use std::fmt;
+
 pub use dsa::KeySize;
 use dsa::{Components, Signature, SigningKey};
 use num_bigint::BigUint;
@@ -14,12 +16,19 @@ use crate::{
 };
 
 /// Secret key for DSA.
-#[derive(Clone, PartialEq, derive_more::Debug)]
+#[derive(Clone, PartialEq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey {
-    #[debug("..")]
     #[cfg_attr(test, proptest(strategy = "tests::key_gen()"))]
     key: dsa::SigningKey,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("key", &format_args!(".."))
+            .finish()
+    }
 }
 
 impl From<&SecretKey> for DsaPublicParams {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{BufRead, Write};
 
 use byteorder::WriteBytesExt;
@@ -18,13 +19,23 @@ use crate::{
 const GNUPG_AEAD_VERSION_1: u8 = 0x01;
 
 /// Configuration of a [GnupgAeadData] encryption container.
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Config {
     pub sym_alg: SymmetricKeyAlgorithm,
     pub aead: AeadAlgorithm,
     pub chunk_size: ChunkSize,
-    #[debug("{}", hex::encode(iv))]
     pub iv: Bytes,
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Config")
+            .field("sym_alg", &self.sym_alg)
+            .field("aead", &self.aead)
+            .field("chunk_size", &self.chunk_size)
+            .field("iv", &format_args!("{}", hex::encode(&self.iv)))
+            .finish()
+    }
 }
 
 impl Config {
@@ -92,12 +103,21 @@ impl Serialize for Config {
 ///
 /// (Note: The standardized OpenPGP packet type that serves the same purpose as [`GnupgAeadData`]
 /// is [`SymEncryptedProtectedData`](crate::packet::SymEncryptedProtectedData) version 2)
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct GnupgAeadData {
     packet_header: PacketHeader,
     config: Config,
-    #[debug("{}", hex::encode(data))]
     data: Bytes,
+}
+
+impl fmt::Debug for GnupgAeadData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("GnupgAeadData")
+            .field("packet_header", &self.packet_header)
+            .field("config", &self.config)
+            .field("data", &format_args!("{}", hex::encode(&self.data)))
+            .finish()
+    }
 }
 
 impl GnupgAeadData {

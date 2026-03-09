@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use bytes::Bytes;
@@ -13,11 +14,19 @@ use crate::{errors::Result, packet::PacketTrait, parsing_reader::BufReadParsing,
 /// An implementation SHOULD reject such a packet and stop processing the message.
 /// If an implementation chooses to process the packet anyway, it MUST return a clear warning
 /// that a non-integrity-protected packet has been processed."
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SymEncryptedData {
     packet_header: PacketHeader,
-    #[debug("{}", hex::encode(data))]
     data: Bytes,
+}
+
+impl fmt::Debug for SymEncryptedData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SymEncryptedData")
+            .field("packet_header", &self.packet_header)
+            .field("data", &format_args!("{}", hex::encode(&self.data)))
+            .finish()
+    }
 }
 
 impl SymEncryptedData {

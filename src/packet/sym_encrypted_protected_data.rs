@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, Read};
 
 use byteorder::WriteBytesExt;
@@ -19,7 +20,7 @@ use crate::{
 /// Configuration of a protected data packet (OpenPGP SEIPD v1/v2, or GnuPG-specific AEAD)
 ///
 /// Used in [`SymEncryptedProtectedDataReader`](crate::composed::SymEncryptedProtectedDataReader)
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub enum ProtectedDataConfig {
     Seipd(SymEncryptedProtectedDataConfig),
     GnupgAead(GnupgAeadDataConfig),
@@ -55,25 +56,53 @@ pub enum ProtectedDataConfig {
 /// Note that support for v2 SEIPD may be signaled by peers via the
 /// [`Features`](crate::packet::Features) mechanism in
 /// [certificates](crate::composed::SignedPublicKey) of peers.
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct SymEncryptedProtectedData {
     packet_header: PacketHeader,
     config: Config,
-    #[debug("{}", hex::encode(data))]
     data: Bytes,
 }
 
+impl fmt::Debug for SymEncryptedProtectedData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SymEncryptedProtectedData")
+            .field("packet_header", &self.packet_header)
+            .field("config", &self.config)
+            .field("data", &format_args!("{}", hex::encode(&self.data)))
+            .finish()
+    }
+}
+
 /// Configuration of a [`SymEncryptedProtectedData`] packet
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Config {
     V1,
     V2 {
         sym_alg: SymmetricKeyAlgorithm,
         aead: AeadAlgorithm,
         chunk_size: ChunkSize,
-        #[debug("{}", hex::encode(salt))]
         salt: [u8; 32],
     },
+}
+
+impl fmt::Debug for Config {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V1 => f.debug_struct("V1").finish(),
+            Self::V2 {
+                sym_alg,
+                aead,
+                chunk_size,
+                salt,
+            } => f
+                .debug_struct("V2")
+                .field("sym_alg", sym_alg)
+                .field("aead", aead)
+                .field("chunk_size", chunk_size)
+                .field("salt", &format_args!("{}", hex::encode(salt)))
+                .finish(),
+        }
+    }
 }
 
 impl Config {

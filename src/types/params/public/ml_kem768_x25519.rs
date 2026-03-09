@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use ml_kem::{kem::EncapsulationKey, EncodedSizeUser, MlKem768Params};
@@ -6,12 +7,25 @@ use crate::{errors::Result, parsing_reader::BufReadParsing, ser::Serialize};
 
 const ML_KEM_PUB_KEY_LENGTH: usize = 1184;
 
-#[derive(derive_more::Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct MlKem768X25519PublicParams {
-    #[debug("{}", hex::encode(x25519_key.as_bytes()))]
     pub x25519_key: x25519_dalek::PublicKey,
-    #[debug("{}", hex::encode(ml_kem_key.as_bytes()))]
     pub ml_kem_key: Box<EncapsulationKey<MlKem768Params>>,
+}
+
+impl fmt::Debug for MlKem768X25519PublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MlKem768X25519PublicParams")
+            .field(
+                "x25519_key",
+                &format_args!("{}", hex::encode(self.x25519_key.as_bytes())),
+            )
+            .field(
+                "ml_kem_key",
+                &format_args!("{}", hex::encode(self.ml_kem_key.as_bytes())),
+            )
+            .finish()
+    }
 }
 
 impl Eq for MlKem768X25519PublicParams {}

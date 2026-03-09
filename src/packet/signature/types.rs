@@ -1,3 +1,4 @@
+use std::fmt;
 use std::{
     cmp::Ordering,
     io::{BufRead, Read},
@@ -60,26 +61,49 @@ use crate::{
 /// key belongs to Alice").
 ///
 /// The purpose of a signature packet is marked by its [`SignatureType`].
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct Signature {
     packet_header: PacketHeader,
     pub(crate) inner: InnerSignature,
 }
 
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub(crate) enum InnerSignature {
     /// V2, V3, V4 and V6
     Known {
         config: SignatureConfig,
-        #[debug("{}", hex::encode(signed_hash_value))]
         signed_hash_value: [u8; 2],
         signature: SignatureBytes,
     },
     Unknown {
         version: SignatureVersion,
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for InnerSignature {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Known {
+                config,
+                signed_hash_value,
+                signature,
+            } => f
+                .debug_struct("Known")
+                .field("config", config)
+                .field(
+                    "signed_hash_value",
+                    &format_args!("{}", hex::encode(signed_hash_value)),
+                )
+                .field("signature", signature)
+                .finish(),
+            Self::Unknown { version, data } => f
+                .debug_struct("Unknown")
+                .field("version", version)
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
 }
 
 impl Signature {
@@ -1041,7 +1065,7 @@ impl Signature {
 }
 
 /// The version of a [`Signature`] packet
-#[derive(derive_more::Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
+#[derive(PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
 #[repr(u8)]
 pub enum SignatureVersion {
     /// Deprecated
@@ -1052,7 +1076,23 @@ pub enum SignatureVersion {
     V6 = 6,
 
     #[num_enum(catch_all)]
-    Other(#[debug("0x{:x}", _0)] u8),
+    Other(u8),
+}
+
+impl fmt::Debug for SignatureVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V2 => f.debug_tuple("V2").finish(),
+            Self::V3 => f.debug_tuple("V3").finish(),
+            Self::V4 => f.debug_tuple("V4").finish(),
+            Self::V5 => f.debug_tuple("V5").finish(),
+            Self::V6 => f.debug_tuple("V6").finish(),
+            Self::Other(version) => f
+                .debug_tuple("Other")
+                .field(&format_args!("0x{:x}", version))
+                .finish(),
+        }
+    }
 }
 
 #[allow(clippy::derivable_impls)]
@@ -1510,8 +1550,8 @@ impl From<KnownKeyFlags> for u16 {
     }
 }
 
-impl core::fmt::Debug for KnownKeyFlags {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Debug for KnownKeyFlags {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("KnownKeyFlags")
             .field("certify", &self.certify())
             .field("sign", &self.sign())
@@ -1716,8 +1756,8 @@ impl From<KnownFeatures> for u8 {
     }
 }
 
-impl core::fmt::Debug for KnownFeatures {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Debug for KnownFeatures {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("KnownFeatures")
             .field("seipd_v1", &self.seipd_v1())
             .field("libre_ocb", &self.libre_ocb())

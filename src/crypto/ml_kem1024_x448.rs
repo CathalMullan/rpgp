@@ -1,4 +1,5 @@
 use std::cmp::PartialEq;
+use std::fmt;
 
 use cx448::x448::{PublicKey, Secret};
 use log::debug;
@@ -25,15 +26,22 @@ pub const X448_KEY_LEN: usize = 56;
 pub const ML_KEM1024_KEY_LEN: usize = 64;
 
 /// Secret key for ML KEM 1024 X448
-#[derive(Clone, derive_more::Debug)]
+#[derive(Clone)]
 pub struct SecretKey {
-    #[debug("..")]
     x448: Secret,
-    #[debug("..")]
     ml_kem: Box<DecapsulationKey<MlKem1024Params>>,
     /// Seed `d` and `z`
-    #[debug("..")]
     ml_kem_seed: (Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>),
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("x448", &format_args!(".."))
+            .field("ml_kem", &format_args!(".."))
+            .field("ml_kem_seed", &format_args!(".."))
+            .finish()
+    }
 }
 
 #[cfg(feature = "zeroize")]

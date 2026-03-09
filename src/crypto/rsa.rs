@@ -1,3 +1,5 @@
+use std::fmt;
+
 use digest::{const_oid::AssociatedOid, Digest};
 use md5::Md5;
 use num_bigint::ModInverse;
@@ -36,14 +38,18 @@ pub(crate) const MAX_KEY_SIZE: usize = 16384;
 const MAX_KEY_SIZE_GENERATE: usize = 4096;
 
 /// Private Key for RSA.
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct SecretKey(
-    #[debug("..")]
-    #[cfg_attr(test, proptest(strategy = "tests::key_gen()"))]
-    RsaPrivateKey,
-);
+pub struct SecretKey(#[cfg_attr(test, proptest(strategy = "tests::key_gen()"))] RsaPrivateKey);
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("SecretKey")
+            .field(&format_args!(".."))
+            .finish()
+    }
+}
 
 impl SecretKey {
     /// Generate an RSA `SecretKey`.

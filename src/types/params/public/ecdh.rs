@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -56,7 +57,7 @@ impl EcdhKdfType {
 }
 
 /// Raw ECDH public key material
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum EcdhPublicParams {
     /// ECDH public parameters for a curve that we know uses Mpi representation
@@ -106,11 +107,67 @@ pub enum EcdhPublicParams {
 
     /// Public parameters for a curve that we don't know about (which might not use Mpi representation).
     #[cfg_attr(test, proptest(skip))]
-    Unsupported {
-        curve: ECCCurve,
-        #[debug("{}", hex::encode(opaque))]
-        opaque: Bytes,
-    },
+    Unsupported { curve: ECCCurve, opaque: Bytes },
+}
+
+impl fmt::Debug for EcdhPublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Curve25519 {
+                p,
+                hash,
+                alg_sym,
+                ecdh_kdf_type,
+            } => f
+                .debug_struct("Curve25519")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .field("ecdh_kdf_type", ecdh_kdf_type)
+                .finish(),
+            Self::P256 { p, hash, alg_sym } => f
+                .debug_struct("P256")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .finish(),
+            Self::P384 { p, hash, alg_sym } => f
+                .debug_struct("P384")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .finish(),
+            Self::P521 { p, hash, alg_sym } => f
+                .debug_struct("P521")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .finish(),
+            Self::Brainpool256 { p, hash, alg_sym } => f
+                .debug_struct("Brainpool256")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .finish(),
+            Self::Brainpool384 { p, hash, alg_sym } => f
+                .debug_struct("Brainpool384")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .finish(),
+            Self::Brainpool512 { p, hash, alg_sym } => f
+                .debug_struct("Brainpool512")
+                .field("p", p)
+                .field("hash", hash)
+                .field("alg_sym", alg_sym)
+                .finish(),
+            Self::Unsupported { curve, opaque } => f
+                .debug_struct("Unsupported")
+                .field("curve", curve)
+                .field("opaque", &format_args!("{}", hex::encode(opaque)))
+                .finish(),
+        }
+    }
 }
 
 impl Serialize for EcdhPublicParams {

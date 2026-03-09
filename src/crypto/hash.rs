@@ -1,3 +1,4 @@
+use std::fmt;
 use std::str::FromStr;
 
 use digest::{Digest, DynDigest};
@@ -12,34 +13,22 @@ use crate::crypto::checksum::Sha1HashCollisionSnafu;
 
 /// Available hash algorithms.
 /// Ref: <https://www.rfc-editor.org/rfc/rfc9580.html#name-hash-algorithms>
-#[derive(
-    Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive, Hash, derive_more::Display,
-)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive, Hash)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 #[non_exhaustive]
 pub enum HashAlgorithm {
     #[cfg_attr(test, proptest(skip))]
-    #[display("NONE")]
     None = 0,
-    #[display("MD5")]
     Md5 = 1,
-    #[display("SHA1")]
     Sha1 = 2,
-    #[display("RIPEMD160")]
     Ripemd160 = 3,
 
-    #[display("SHA256")]
     Sha256 = 8,
-    #[display("SHA384")]
     Sha384 = 9,
-    #[display("SHA512")]
     Sha512 = 10,
-    #[display("SHA224")]
     Sha224 = 11,
-    #[display("SHA3-256")]
     Sha3_256 = 12,
-    #[display("SHA3-512")]
     Sha3_512 = 14,
 
     /// Do not use, just for compatibility with GnuPG.
@@ -47,6 +36,25 @@ pub enum HashAlgorithm {
 
     #[num_enum(catch_all)]
     Other(#[cfg_attr(test, proptest(strategy = "111u8.."))] u8),
+}
+
+impl fmt::Display for HashAlgorithm {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::None => f.write_str("NONE"),
+            Self::Md5 => f.write_str("MD5"),
+            Self::Sha1 => f.write_str("SHA1"),
+            Self::Ripemd160 => f.write_str("RIPEMD160"),
+            Self::Sha256 => f.write_str("SHA256"),
+            Self::Sha384 => f.write_str("SHA384"),
+            Self::Sha512 => f.write_str("SHA512"),
+            Self::Sha224 => f.write_str("SHA224"),
+            Self::Sha3_256 => f.write_str("SHA3-256"),
+            Self::Sha3_512 => f.write_str("SHA3-512"),
+            Self::Private10 => f.write_str("Private10"),
+            Self::Other(value) => write!(f, "{}", value),
+        }
+    }
 }
 
 /// Marker trait for supported hash algorithms

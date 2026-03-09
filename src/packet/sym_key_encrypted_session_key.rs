@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -31,13 +32,12 @@ use crate::{
 ///
 /// The SKESK is a password-based variation of the
 /// [`PublicKeyEncryptedSessionKey`](crate::packet::PublicKeyEncryptedSessionKey) (PKESK) packet.
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum SymKeyEncryptedSessionKey {
     V4 {
         packet_header: PacketHeader,
         sym_algorithm: SymmetricKeyAlgorithm,
         s2k: StringToKey,
-        #[debug("{}", hex::encode(encrypted_key))]
         encrypted_key: Bytes,
     },
     V5 {
@@ -45,7 +45,6 @@ pub enum SymKeyEncryptedSessionKey {
         sym_algorithm: SymmetricKeyAlgorithm,
         s2k: StringToKey,
         aead: AeadProps,
-        #[debug("{}", hex::encode(encrypted_key))]
         encrypted_key: Bytes,
     },
     V6 {
@@ -53,34 +52,107 @@ pub enum SymKeyEncryptedSessionKey {
         sym_algorithm: SymmetricKeyAlgorithm,
         s2k: StringToKey,
         aead: AeadProps,
-        #[debug("{}", hex::encode(encrypted_key))]
         encrypted_key: Bytes,
     },
     Other {
         packet_header: PacketHeader,
-        #[debug("{:X}", version)]
         version: u8,
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
 }
 
+impl fmt::Debug for SymKeyEncryptedSessionKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V4 {
+                packet_header,
+                sym_algorithm,
+                s2k,
+                encrypted_key,
+            } => f
+                .debug_struct("V4")
+                .field("packet_header", packet_header)
+                .field("sym_algorithm", sym_algorithm)
+                .field("s2k", s2k)
+                .field(
+                    "encrypted_key",
+                    &format_args!("{}", hex::encode(encrypted_key)),
+                )
+                .finish(),
+            Self::V5 {
+                packet_header,
+                sym_algorithm,
+                s2k,
+                aead,
+                encrypted_key,
+            } => f
+                .debug_struct("V5")
+                .field("packet_header", packet_header)
+                .field("sym_algorithm", sym_algorithm)
+                .field("s2k", s2k)
+                .field("aead", aead)
+                .field(
+                    "encrypted_key",
+                    &format_args!("{}", hex::encode(encrypted_key)),
+                )
+                .finish(),
+            Self::V6 {
+                packet_header,
+                sym_algorithm,
+                s2k,
+                aead,
+                encrypted_key,
+            } => f
+                .debug_struct("V6")
+                .field("packet_header", packet_header)
+                .field("sym_algorithm", sym_algorithm)
+                .field("s2k", s2k)
+                .field("aead", aead)
+                .field(
+                    "encrypted_key",
+                    &format_args!("{}", hex::encode(encrypted_key)),
+                )
+                .finish(),
+            Self::Other {
+                packet_header,
+                version,
+                data,
+            } => f
+                .debug_struct("Other")
+                .field("packet_header", packet_header)
+                .field("version", &format_args!("{:X}", version))
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
+}
+
 /// AEAD configuration for a v6 (or v5) [`SymKeyEncryptedSessionKey`] (SKESK)
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum AeadProps {
-    Eax {
-        #[debug("{}", hex::encode(iv))]
-        iv: [u8; 16],
-    },
-    Ocb {
-        #[debug("{}", hex::encode(iv))]
-        iv: [u8; 15],
-    },
-    Gcm {
-        #[debug("{}", hex::encode(iv))]
-        iv: [u8; 12],
-    },
+    Eax { iv: [u8; 16] },
+    Ocb { iv: [u8; 15] },
+    Gcm { iv: [u8; 12] },
+}
+
+impl fmt::Debug for AeadProps {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Eax { iv } => f
+                .debug_struct("Eax")
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .finish(),
+            Self::Ocb { iv } => f
+                .debug_struct("Ocb")
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .finish(),
+            Self::Gcm { iv } => f
+                .debug_struct("Gcm")
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .finish(),
+        }
+    }
 }
 
 impl From<&AeadProps> for AeadAlgorithm {

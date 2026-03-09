@@ -1,3 +1,5 @@
+use std::fmt;
+
 use log::debug;
 use rand::{CryptoRng, Rng};
 use x25519_dalek::{PublicKey, StaticSecret};
@@ -23,9 +25,17 @@ const ANON_SENDER: [u8; 20] = [
 ];
 
 /// ECDH Curve25519 secret key
-#[derive(Clone, derive_more::Debug)]
+#[derive(Clone)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
-pub struct Curve25519(#[debug("..")] StaticSecret);
+pub struct Curve25519(StaticSecret);
+
+impl fmt::Debug for Curve25519 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Curve25519")
+            .field(&format_args!(".."))
+            .finish()
+    }
+}
 
 impl From<StaticSecret> for Curve25519 {
     fn from(value: StaticSecret) -> Self {
@@ -77,7 +87,7 @@ impl Curve25519 {
 }
 
 /// Secret key for ECDH
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum SecretKey {
@@ -86,7 +96,6 @@ pub enum SecretKey {
     /// ECDH with Nist P256
     P256 {
         /// The secret point.
-        #[debug("..")]
         #[cfg_attr(test, proptest(strategy = "tests::key_p256_gen()"))]
         secret: p256::SecretKey,
     },
@@ -94,7 +103,6 @@ pub enum SecretKey {
     /// ECDH with Nist P384
     P384 {
         /// The secret point.
-        #[debug("..")]
         #[cfg_attr(test, proptest(strategy = "tests::key_p384_gen()"))]
         secret: p384::SecretKey,
     },
@@ -102,10 +110,29 @@ pub enum SecretKey {
     /// ECDH with Nist P521
     P521 {
         /// The secret point.
-        #[debug("..")]
         #[cfg_attr(test, proptest(strategy = "tests::key_p521_gen()"))]
         secret: p521::SecretKey,
     },
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Curve25519(v) => f.debug_tuple("Curve25519").field(v).finish(),
+            Self::P256 { .. } => f
+                .debug_struct("P256")
+                .field("secret", &format_args!(".."))
+                .finish(),
+            Self::P384 { .. } => f
+                .debug_struct("P384")
+                .field("secret", &format_args!(".."))
+                .finish(),
+            Self::P521 { .. } => f
+                .debug_struct("P521")
+                .field("secret", &format_args!(".."))
+                .finish(),
+        }
+    }
 }
 
 impl From<&SecretKey> for EcdhPublicParams {

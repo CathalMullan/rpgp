@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{
     errors::{bail, format_err, Result},
     types::KeyVersion,
@@ -9,30 +11,62 @@ use crate::{
 ///
 /// OpenPGP fingerprints consist of two pieces of information:
 /// The key version, and binary data that represents the fingerprint itself.
-#[derive(Clone, Eq, Hash, PartialEq, derive_more::Debug, derive_more::Display)]
+#[derive(Clone, Eq, Hash, PartialEq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum Fingerprint {
-    #[debug("{}", hex::encode(_0))]
-    #[display("{}", hex::encode(_0))]
     V2([u8; 16]),
-    #[debug("{}", hex::encode(_0))]
-    #[display("{}", hex::encode(_0))]
     V3([u8; 16]),
-    #[debug("{}", hex::encode(_0))]
-    #[display("{}", hex::encode(_0))]
     V4([u8; 20]),
-    #[debug("{}", hex::encode(_0))]
-    #[display("{}", hex::encode(_0))]
     V5([u8; 32]),
-    #[debug("{}", hex::encode(_0))]
-    #[display("{}", hex::encode(_0))]
     V6([u8; 32]),
 
-    #[debug("{}", hex::encode(_0))]
-    #[display("{}", hex::encode(_0))]
     #[cfg_attr(test, proptest(skip))]
     /// Fingerprint with unknown key version
     Unknown(Box<[u8]>),
+}
+
+impl fmt::Debug for Fingerprint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V2(bytes) => f
+                .debug_tuple("V2")
+                .field(&format_args!("{}", hex::encode(bytes)))
+                .finish(),
+            Self::V3(bytes) => f
+                .debug_tuple("V3")
+                .field(&format_args!("{}", hex::encode(bytes)))
+                .finish(),
+            Self::V4(bytes) => f
+                .debug_tuple("V4")
+                .field(&format_args!("{}", hex::encode(bytes)))
+                .finish(),
+            Self::V5(bytes) => f
+                .debug_tuple("V5")
+                .field(&format_args!("{}", hex::encode(bytes)))
+                .finish(),
+            Self::V6(bytes) => f
+                .debug_tuple("V6")
+                .field(&format_args!("{}", hex::encode(bytes)))
+                .finish(),
+            Self::Unknown(bytes) => f
+                .debug_tuple("Unknown")
+                .field(&format_args!("{}", hex::encode(bytes)))
+                .finish(),
+        }
+    }
+}
+
+impl fmt::Display for Fingerprint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V2(bytes) => write!(f, "{}", hex::encode(bytes)),
+            Self::V3(bytes) => write!(f, "{}", hex::encode(bytes)),
+            Self::V4(bytes) => write!(f, "{}", hex::encode(bytes)),
+            Self::V5(bytes) => write!(f, "{}", hex::encode(bytes)),
+            Self::V6(bytes) => write!(f, "{}", hex::encode(bytes)),
+            Self::Unknown(bytes) => write!(f, "{}", hex::encode(bytes)),
+        }
+    }
 }
 
 impl Fingerprint {
@@ -114,14 +148,14 @@ impl AsRef<[u8]> for Fingerprint {
     }
 }
 
-impl std::fmt::UpperHex for Fingerprint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::UpperHex for Fingerprint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", hex::encode_upper(self))
     }
 }
 
-impl std::fmt::LowerHex for Fingerprint {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::LowerHex for Fingerprint {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", hex::encode(self))
     }
 }

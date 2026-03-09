@@ -1,3 +1,5 @@
+use std::fmt;
+
 use rand::{CryptoRng, Rng};
 #[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
@@ -15,14 +17,21 @@ const MIN_HASH_LEN_BITS: usize = 512;
 pub const KEY_LEN: usize = 57;
 
 /// Secret key for EdDSA with Curve448.
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey {
     /// The secret point.
-    #[debug("..")]
     #[cfg_attr(test, proptest(strategy = "tests::key_gen()"))]
     secret: cx448::SigningKey,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("secret", &format_args!(".."))
+            .finish()
+    }
 }
 
 impl From<&SecretKey> for Ed448PublicParams {

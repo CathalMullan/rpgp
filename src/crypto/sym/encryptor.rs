@@ -1,3 +1,5 @@
+use std::fmt;
+
 use aes::{Aes128, Aes192, Aes256};
 use blowfish::Blowfish;
 use bytes::{Buf, Bytes, BytesMut};
@@ -125,7 +127,6 @@ where
     }
 }
 
-#[derive(derive_more::Debug)]
 pub enum StreamEncryptorInner<M, R>
 where
     M: BlockDecrypt + BlockEncryptMut + BlockCipher,
@@ -135,14 +136,12 @@ where
     Prefix {
         // We use regular sha1 for MDC, not sha1_checked. Collisions are not currently a concern with MDC.
         hasher: Sha1,
-        #[debug("BufEncryptor")]
         encryptor: BufEncryptor<M>,
         prefix: Bytes,
         source: R,
     },
     Data {
         hasher: Sha1,
-        #[debug("BufEncryptor")]
         encryptor: BufEncryptor<M>,
         buffer: BytesMut,
         /// set to `None` once the source is fully read
@@ -153,6 +152,45 @@ where
     },
     Done,
     Unknown,
+}
+
+impl<M, R> fmt::Debug for StreamEncryptorInner<M, R>
+where
+    M: BlockDecrypt + BlockEncryptMut + BlockCipher,
+    BufEncryptor<M>: KeyIvInit,
+    R: std::io::Read + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Prefix {
+                hasher,
+                prefix,
+                source,
+                ..
+            } => f
+                .debug_struct("Prefix")
+                .field("hasher", hasher)
+                .field("encryptor", &format_args!("BufEncryptor"))
+                .field("prefix", prefix)
+                .field("source", source)
+                .finish(),
+            Self::Data {
+                hasher,
+                buffer,
+                source,
+                ..
+            } => f
+                .debug_struct("Data")
+                .field("hasher", hasher)
+                .field("encryptor", &format_args!("BufEncryptor"))
+                .field("buffer", buffer)
+                .field("source", source)
+                .finish(),
+            Self::Mdc { mdc } => f.debug_struct("Mdc").field("mdc", mdc).finish(),
+            Self::Done => f.write_str("Done"),
+            Self::Unknown => f.write_str("Unknown"),
+        }
+    }
 }
 
 impl<M, R> StreamEncryptorInner<M, R>

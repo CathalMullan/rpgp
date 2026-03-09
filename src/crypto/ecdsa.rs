@@ -1,3 +1,5 @@
+use std::fmt;
+
 use ecdsa::SigningKey;
 use p521::NistP521;
 use rand::{CryptoRng, Rng};
@@ -12,38 +14,40 @@ use crate::{
     types::{EcdsaPublicParams, Mpi, SignatureBytes},
 };
 
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum SecretKey {
-    P256(
-        #[debug("..")]
-        #[cfg_attr(test, proptest(strategy = "tests::key_p256_gen()"))]
-        p256::SecretKey,
-    ),
-    P384(
-        #[debug("..")]
-        #[cfg_attr(test, proptest(strategy = "tests::key_p384_gen()"))]
-        p384::SecretKey,
-    ),
-    P521(
-        #[debug("..")]
-        #[cfg_attr(test, proptest(strategy = "tests::key_p521_gen()"))]
-        p521::SecretKey,
-    ),
-    Secp256k1(
-        #[debug("..")]
-        #[cfg_attr(test, proptest(strategy = "tests::key_k256_gen()"))]
-        k256::SecretKey,
-    ),
+    P256(#[cfg_attr(test, proptest(strategy = "tests::key_p256_gen()"))] p256::SecretKey),
+    P384(#[cfg_attr(test, proptest(strategy = "tests::key_p384_gen()"))] p384::SecretKey),
+    P521(#[cfg_attr(test, proptest(strategy = "tests::key_p521_gen()"))] p521::SecretKey),
+    Secp256k1(#[cfg_attr(test, proptest(strategy = "tests::key_k256_gen()"))] k256::SecretKey),
     #[cfg_attr(test, proptest(skip))]
     Unsupported {
         /// The secret point.
-        #[debug("..")]
         x: Vec<u8>,
         #[cfg_attr(feature = "zeroize", zeroize(skip))]
         curve: ECCCurve,
     },
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::P256(..) => f.debug_tuple("P256").field(&format_args!("..")).finish(),
+            Self::P384(..) => f.debug_tuple("P384").field(&format_args!("..")).finish(),
+            Self::P521(..) => f.debug_tuple("P521").field(&format_args!("..")).finish(),
+            Self::Secp256k1(..) => f
+                .debug_tuple("Secp256k1")
+                .field(&format_args!(".."))
+                .finish(),
+            Self::Unsupported { curve, .. } => f
+                .debug_struct("Unsupported")
+                .field("x", &format_args!(".."))
+                .field("curve", curve)
+                .finish(),
+        }
+    }
 }
 
 impl TryFrom<&SecretKey> for EcdsaPublicParams {

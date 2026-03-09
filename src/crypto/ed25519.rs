@@ -12,6 +12,7 @@
 //! This implicitly yields differing OpenPGP fingerprints, so the two OpenPGP key variants cannot
 //! be used interchangeably.
 
+use std::fmt;
 use std::ops::Deref;
 
 use rand::{CryptoRng, Rng};
@@ -49,16 +50,24 @@ pub enum Mode {
 }
 
 /// Secret key for EdDSA with Curve25519, the only combination we currently support.
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey {
     /// The secret point.
-    #[debug("..")]
     #[cfg_attr(test, proptest(strategy = "tests::key_gen()"))]
     secret: ed25519_dalek::SigningKey,
     #[cfg_attr(feature = "zeroize", zeroize(skip))]
     pub(crate) mode: Mode,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("secret", &format_args!(".."))
+            .field("mode", &self.mode)
+            .finish()
+    }
 }
 
 impl From<&SecretKey> for Ed25519PublicParams {

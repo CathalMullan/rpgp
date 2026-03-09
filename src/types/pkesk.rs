@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::BufRead;
 
 use byteorder::WriteBytesExt;
@@ -14,7 +15,7 @@ use crate::{
 };
 
 /// Values comprising a Public Key Encrypted Session Key
-#[derive(Clone, derive_more::Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub enum PkeskBytes {
     Rsa {
         mpi: Mpi,
@@ -29,52 +30,122 @@ pub enum PkeskBytes {
     },
     X25519 {
         /// Ephemeral X25519 public key (32 bytes).
-        #[debug("{}", hex::encode(ephemeral))]
         ephemeral: [u8; 32],
         /// Encrypted and wrapped session key.
-        #[debug("{}", hex::encode(session_key))]
         session_key: Bytes,
         /// Set for v3 PKESK only (the sym_alg is not encrypted with the session key for X25519)
         sym_alg: Option<SymmetricKeyAlgorithm>,
     },
     X448 {
         /// Ephemeral X448 public key (56 bytes).
-        #[debug("{}", hex::encode(ephemeral))]
         ephemeral: [u8; 56],
         /// Encrypted and wrapped session key.
-        #[debug("{}", hex::encode(session_key))]
         session_key: Bytes,
         /// Set for v3 PKESK only (the sym_alg is not encrypted with the session key for X448)
         sym_alg: Option<SymmetricKeyAlgorithm>,
     },
     MlKem768X25519 {
         /// Ephemeral X25519 public key (32 bytes).
-        #[debug("{}", hex::encode(ecdh_ciphertext))]
         ecdh_ciphertext: [u8; 32],
-        #[debug("{}", hex::encode(&ml_kem_ciphertext[..]))]
         ml_kem_ciphertext: Box<[u8; 1088]>,
         /// Encrypted and wrapped session key.
-        #[debug("{}", hex::encode(session_key))]
         session_key: Bytes,
         /// Set for v3 PKESK only (the sym_alg is not encrypted with the session key for X25519)
         sym_alg: Option<SymmetricKeyAlgorithm>,
     },
     MlKem1024X448 {
         /// Ephemeral X448public key (32 bytes).
-        #[debug("{}", hex::encode(ecdh_ciphertext.as_bytes()))]
         ecdh_ciphertext: cx448::x448::PublicKey,
-        #[debug("{}", hex::encode(&ml_kem_ciphertext[..]))]
         ml_kem_ciphertext: Box<[u8; 1568]>,
         /// Encrypted and wrapped session key.
-        #[debug("{}", hex::encode(session_key))]
         session_key: Bytes,
         /// Set for v3 PKESK only (the sym_alg is not encrypted with the session key for X448)
         sym_alg: Option<SymmetricKeyAlgorithm>,
     },
     Other {
-        #[debug("{}", hex::encode(key))]
         key: Bytes,
     },
+}
+
+impl fmt::Debug for PkeskBytes {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Rsa { mpi } => f.debug_struct("Rsa").field("mpi", mpi).finish(),
+            Self::Elgamal { first, second } => f
+                .debug_struct("Elgamal")
+                .field("first", first)
+                .field("second", second)
+                .finish(),
+            Self::Ecdh {
+                public_point,
+                encrypted_session_key,
+            } => f
+                .debug_struct("Ecdh")
+                .field("public_point", public_point)
+                .field("encrypted_session_key", encrypted_session_key)
+                .finish(),
+            Self::X25519 {
+                ephemeral,
+                session_key,
+                sym_alg,
+            } => f
+                .debug_struct("X25519")
+                .field("ephemeral", &format_args!("{}", hex::encode(ephemeral)))
+                .field("session_key", &format_args!("{}", hex::encode(session_key)))
+                .field("sym_alg", sym_alg)
+                .finish(),
+            Self::X448 {
+                ephemeral,
+                session_key,
+                sym_alg,
+            } => f
+                .debug_struct("X448")
+                .field("ephemeral", &format_args!("{}", hex::encode(ephemeral)))
+                .field("session_key", &format_args!("{}", hex::encode(session_key)))
+                .field("sym_alg", sym_alg)
+                .finish(),
+            Self::MlKem768X25519 {
+                ecdh_ciphertext,
+                ml_kem_ciphertext,
+                session_key,
+                sym_alg,
+            } => f
+                .debug_struct("MlKem768X25519")
+                .field(
+                    "ecdh_ciphertext",
+                    &format_args!("{}", hex::encode(ecdh_ciphertext)),
+                )
+                .field(
+                    "ml_kem_ciphertext",
+                    &format_args!("{}", hex::encode(&ml_kem_ciphertext[..])),
+                )
+                .field("session_key", &format_args!("{}", hex::encode(session_key)))
+                .field("sym_alg", sym_alg)
+                .finish(),
+            Self::MlKem1024X448 {
+                ecdh_ciphertext,
+                ml_kem_ciphertext,
+                session_key,
+                sym_alg,
+            } => f
+                .debug_struct("MlKem1024X448")
+                .field(
+                    "ecdh_ciphertext",
+                    &format_args!("{}", hex::encode(ecdh_ciphertext.as_bytes())),
+                )
+                .field(
+                    "ml_kem_ciphertext",
+                    &format_args!("{}", hex::encode(&ml_kem_ciphertext[..])),
+                )
+                .field("session_key", &format_args!("{}", hex::encode(session_key)))
+                .field("sym_alg", sym_alg)
+                .finish(),
+            Self::Other { key } => f
+                .debug_struct("Other")
+                .field("key", &format_args!("{}", hex::encode(key)))
+                .finish(),
+        }
+    }
 }
 
 impl PkeskBytes {

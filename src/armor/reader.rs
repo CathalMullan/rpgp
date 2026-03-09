@@ -377,7 +377,6 @@ pub enum ArmorCrc24Status {
 }
 
 /// Streaming based ascii armor parsing.
-#[derive(derive_more::Debug)]
 pub struct Dearmor<R: BufRead> {
     /// The ascii armor parsed block type.
     pub typ: Option<BlockType>,
@@ -388,10 +387,22 @@ pub struct Dearmor<R: BufRead> {
     /// Current state
     current_part: Part<R>,
     /// (Optional) crc24 hasher
-    #[debug("Crc24Hasher")]
     crc: Option<crc24::Crc24Hasher>,
     /// Maximum buffer limit
     max_buffer_limit: usize,
+}
+
+impl<R: BufRead + fmt::Debug> fmt::Debug for Dearmor<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Dearmor")
+            .field("typ", &self.typ)
+            .field("headers", &self.headers)
+            .field("checksum", &self.checksum)
+            .field("current_part", &self.current_part)
+            .field("crc", &format_args!("Crc24Hasher"))
+            .field("max_buffer_limit", &self.max_buffer_limit)
+            .finish()
+    }
 }
 
 /// Internal indicator, where in the parsing phase we are

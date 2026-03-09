@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use crate::{
@@ -19,13 +20,21 @@ use crate::{
 /// It is now described as an intrinsic part of v1 SEIPD (Section 5.13.1), and the same
 /// corresponding flag is known as "Version 1 Symmetrically Encrypted and Integrity Protected
 /// Data packet".
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct ModDetectionCode {
     packet_header: PacketHeader,
     /// 20 byte SHA1 hash of the preceding plaintext data.
-    #[debug("{}", hex::encode(hash))]
     hash: [u8; 20],
+}
+
+impl fmt::Debug for ModDetectionCode {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ModDetectionCode")
+            .field("packet_header", &self.packet_header)
+            .field("hash", &format_args!("{}", hex::encode(self.hash)))
+            .finish()
+    }
 }
 
 impl ModDetectionCode {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::{LittleEndian, WriteBytesExt};
@@ -17,15 +18,22 @@ use crate::{
 };
 
 /// The type of a user attribute. Only `Image` is a known type currently
-#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive, derive_more::Display)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 pub enum UserAttributeType {
-    #[display("Image")]
     Image = 0x01,
     #[num_enum(catch_all)]
-    #[display("Unknown({:x})", 0)]
     Unknown(#[cfg_attr(test, proptest(filter = "|i| *i != 1"))] u8),
+}
+
+impl fmt::Display for UserAttributeType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Image => write!(f, "Image"),
+            Self::Unknown(val) => write!(f, "Unknown({:x})", val),
+        }
+    }
 }
 
 /// The header for a JPEG image.
@@ -45,24 +53,64 @@ const JPEG_HEADER_PREFIX: &[u8; 4] = &[
 ///
 /// (Note that while User Attributes are a long-established feature of OpenPGP, and widely
 /// supported, they are not currently widely used.)
-#[derive(Clone, PartialEq, Eq, derive_more::Debug, derive_more::Display)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum UserAttribute {
-    #[display("User Attribute: Image (len: {})", data.len())]
     Image {
         packet_header: PacketHeader,
         subpacket_len: SubpacketLength,
         header: ImageHeader,
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
-    #[display("User Attribute: {} (len: {})", typ, data.len())]
     Unknown {
         packet_header: PacketHeader,
         subpacket_len: SubpacketLength,
         typ: UserAttributeType,
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for UserAttribute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Image {
+                packet_header,
+                subpacket_len,
+                header,
+                data,
+            } => f
+                .debug_struct("Image")
+                .field("packet_header", packet_header)
+                .field("subpacket_len", subpacket_len)
+                .field("header", header)
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+            Self::Unknown {
+                packet_header,
+                subpacket_len,
+                typ,
+                data,
+            } => f
+                .debug_struct("Unknown")
+                .field("packet_header", packet_header)
+                .field("subpacket_len", subpacket_len)
+                .field("typ", typ)
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
+}
+
+impl fmt::Display for UserAttribute {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Image { data, .. } => {
+                write!(f, "User Attribute: Image (len: {})", data.len())
+            }
+            Self::Unknown { typ, data, .. } => {
+                write!(f, "User Attribute: {} (len: {})", typ, data.len())
+            }
+        }
+    }
 }
 
 /// An image header is used in the image attribute subpacket.
@@ -72,22 +120,34 @@ pub enum UserAttribute {
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-image-attribute-subpacket>
 ///
 /// Note that the Image Attribute subpacket are not commonly used.
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ImageHeader {
     V1(ImageHeaderV1),
     Unknown {
         /// Version of the header
         version: u8,
         /// Data of the header
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for ImageHeader {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V1(header) => f.debug_tuple("V1").field(header).finish(),
+            Self::Unknown { version, data } => f
+                .debug_struct("Unknown")
+                .field("version", version)
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
 }
 
 /// Payload of a v1 [`ImageHeader`]
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-image-attribute-subpacket>
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum ImageHeaderV1 {
     Jpeg {
         /// The header data, should be all zeroes if spec compliant
@@ -97,9 +157,21 @@ pub enum ImageHeaderV1 {
         /// Image format
         format: u8,
         /// Data of the header
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for ImageHeaderV1 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Jpeg { data } => f.debug_struct("Jpeg").field("data", data).finish(),
+            Self::Unknown { format, data } => f
+                .debug_struct("Unknown")
+                .field("format", format)
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
 }
 
 impl ImageHeader {

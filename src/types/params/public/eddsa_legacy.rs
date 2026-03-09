@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -12,7 +13,7 @@ use crate::{
 };
 
 /// Raw EdDSA public key material
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum EddsaLegacyPublicParams {
     Ed25519 {
@@ -20,11 +21,20 @@ pub enum EddsaLegacyPublicParams {
         key: ed25519_dalek::VerifyingKey,
     },
     #[cfg_attr(test, proptest(skip))]
-    Unsupported {
-        curve: ECCCurve,
-        #[debug("{}", hex::encode(opaque))]
-        opaque: Bytes,
-    },
+    Unsupported { curve: ECCCurve, opaque: Bytes },
+}
+
+impl fmt::Debug for EddsaLegacyPublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Ed25519 { key } => f.debug_struct("Ed25519").field("key", key).finish(),
+            Self::Unsupported { curve, opaque } => f
+                .debug_struct("Unsupported")
+                .field("curve", curve)
+                .field("opaque", &format_args!("{}", hex::encode(opaque)))
+                .finish(),
+        }
+    }
 }
 
 impl EddsaLegacyPublicParams {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use bytes::Bytes;
@@ -19,14 +20,22 @@ use crate::{
 /// random data to OpenPGP objects. Padding packets must be ignored by the receiving party.
 ///
 /// <https://www.rfc-editor.org/rfc/rfc9580.html#name-padding-packet-type-id-21>
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct Padding {
     packet_header: PacketHeader,
     /// Random data.
-    #[debug("{}", hex::encode(data))]
     #[cfg_attr(test, proptest(strategy = "any::<Vec<u8>>().prop_map(Into::into)"))]
     data: Bytes,
+}
+
+impl fmt::Debug for Padding {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Padding")
+            .field("packet_header", &self.packet_header)
+            .field("data", &format_args!("{}", hex::encode(&self.data)))
+            .finish()
+    }
 }
 
 impl Padding {

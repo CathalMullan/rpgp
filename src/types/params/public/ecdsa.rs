@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -13,7 +14,7 @@ use crate::{
 };
 
 /// Raw ECDSA public key material
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum EcdsaPublicParams {
     P256 {
@@ -33,11 +34,23 @@ pub enum EcdsaPublicParams {
         key: k256::PublicKey,
     },
     #[cfg_attr(test, proptest(skip))]
-    Unsupported {
-        curve: ECCCurve,
-        #[debug("{}", hex::encode(opaque))]
-        opaque: Bytes,
-    },
+    Unsupported { curve: ECCCurve, opaque: Bytes },
+}
+
+impl fmt::Debug for EcdsaPublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::P256 { key } => f.debug_struct("P256").field("key", key).finish(),
+            Self::P384 { key } => f.debug_struct("P384").field("key", key).finish(),
+            Self::P521 { key } => f.debug_struct("P521").field("key", key).finish(),
+            Self::Secp256k1 { key } => f.debug_struct("Secp256k1").field("key", key).finish(),
+            Self::Unsupported { curve, opaque } => f
+                .debug_struct("Unsupported")
+                .field("curve", curve)
+                .field("opaque", &format_args!("{}", hex::encode(opaque)))
+                .finish(),
+        }
+    }
 }
 
 impl EcdsaPublicParams {

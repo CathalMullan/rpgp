@@ -1,5 +1,6 @@
 use std::cmp::PartialEq;
 use std::error::Error as StdError;
+use std::fmt;
 
 use rand::{CryptoRng, Rng};
 use smallvec::SmallVec;
@@ -383,8 +384,8 @@ impl From<String> for SecretKeyParamsBuilderError {
     }
 }
 
-impl core::fmt::Display for SecretKeyParamsBuilderError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Display for SecretKeyParamsBuilderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UninitializedField(field) => {
                 write!(f, "`{field}` must be initialized")
@@ -414,8 +415,8 @@ impl From<String> for SubkeyParamsBuilderError {
     }
 }
 
-impl core::fmt::Display for SubkeyParamsBuilderError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+impl fmt::Display for SubkeyParamsBuilderError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UninitializedField(field) => {
                 write!(f, "`{field}` must be initialized")

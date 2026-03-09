@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, BufReader, Read};
 
 use byteorder::WriteBytesExt;
@@ -21,24 +22,50 @@ use crate::{
 /// This is a container format that can be used for OpenPGP message payloads.
 ///
 /// Ref <https://www.rfc-editor.org/rfc/rfc9580.html#name-compressed-data-packet-type>
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct CompressedData {
     packet_header: PacketHeader,
     compression_algorithm: CompressionAlgorithm,
-    #[debug("{}", hex::encode(compressed_data))]
     #[cfg_attr(test, proptest(strategy = "tests::compressed_data_gen()"))]
     compressed_data: Bytes,
 }
 
+impl fmt::Debug for CompressedData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("CompressedData")
+            .field("packet_header", &self.packet_header)
+            .field("compression_algorithm", &self.compression_algorithm)
+            .field(
+                "compressed_data",
+                &format_args!("{}", hex::encode(&self.compressed_data)),
+            )
+            .finish()
+    }
+}
+
 /// Structure to decompress a given reader.
-#[derive(derive_more::Debug)]
 pub enum Decompressor<R> {
     Uncompressed(R),
     Zip(BufReader<DeflateDecoder<R>>),
     Zlib(BufReader<ZlibDecoder<R>>),
     #[cfg(feature = "bzip2")]
-    Bzip2(#[debug("BzDecoder")] BufReader<BzDecoder<R>>),
+    Bzip2(BufReader<BzDecoder<R>>),
+}
+
+impl<R: fmt::Debug> fmt::Debug for Decompressor<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Uncompressed(reader) => f.debug_tuple("Uncompressed").field(reader).finish(),
+            Self::Zip(reader) => f.debug_tuple("Zip").field(reader).finish(),
+            Self::Zlib(reader) => f.debug_tuple("Zlib").field(reader).finish(),
+            #[cfg(feature = "bzip2")]
+            Self::Bzip2(_) => f
+                .debug_tuple("Bzip2")
+                .field(&format_args!("BzDecoder"))
+                .finish(),
+        }
+    }
 }
 
 impl<R: BufRead> Decompressor<R> {

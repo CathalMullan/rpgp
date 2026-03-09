@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use cx448::x448;
@@ -12,12 +13,25 @@ use crate::{
 const ML_KEM_PUB_KEY_LENGTH: usize = 1568;
 const X448_PUB_KEY_LENGTH: usize = 56;
 
-#[derive(derive_more::Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct MlKem1024X448PublicParams {
-    #[debug("{}", hex::encode(x448_key.as_bytes()))]
     pub x448_key: x448::PublicKey,
-    #[debug("{}", hex::encode(ml_kem_key.as_bytes()))]
     pub ml_kem_key: Box<EncapsulationKey<MlKem1024Params>>,
+}
+
+impl fmt::Debug for MlKem1024X448PublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MlKem1024X448PublicParams")
+            .field(
+                "x448_key",
+                &format_args!("{}", hex::encode(self.x448_key.as_bytes())),
+            )
+            .field(
+                "ml_kem_key",
+                &format_args!("{}", hex::encode(self.ml_kem_key.as_bytes())),
+            )
+            .finish()
+    }
 }
 
 impl Eq for MlKem1024X448PublicParams {}

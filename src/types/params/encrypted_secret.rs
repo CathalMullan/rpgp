@@ -1,3 +1,4 @@
+use std::fmt;
 use std::{io, io::Write};
 
 use byteorder::WriteBytesExt;
@@ -16,13 +17,21 @@ use crate::{
 /// Secret key material, in a password-locked form.
 ///
 /// The unlocked counterpart to this type is [`PlainSecretParams`].
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct EncryptedSecretParams {
     /// The encrypted data, including the checksum.
-    #[debug("{}", hex::encode(data))]
     data: Bytes,
     /// S2k Params
     s2k_params: S2kParams,
+}
+
+impl fmt::Debug for EncryptedSecretParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EncryptedSecretParams")
+            .field("data", &format_args!("{}", hex::encode(&self.data)))
+            .field("s2k_params", &self.s2k_params)
+            .finish()
+    }
 }
 
 // Fake impl, we don't need to zeroize, as everything is encrypted

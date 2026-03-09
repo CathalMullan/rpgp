@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, Read};
 
 use aes::{Aes128, Aes192, Aes256};
@@ -217,7 +218,7 @@ where
     }
 }
 
-#[derive(derive_more::Debug)]
+#[derive(Debug)]
 pub enum MaybeProtected {
     Protected {
         // We use regular sha1 for MDC, not sha1_checked. Collisions are not currently a concern with MDC.
@@ -234,7 +235,6 @@ impl MaybeProtected {
     }
 }
 
-#[derive(derive_more::Debug)]
 pub enum StreamDecryptorInner<M, R>
 where
     M: BlockDecrypt + BlockEncryptMut + BlockCipher,
@@ -242,7 +242,6 @@ where
     R: BufRead,
 {
     Prefix {
-        #[debug("BufDecryptor")]
         decryptor: BufDecryptor<M>,
         prefix: BytesMut,
         source: R,
@@ -252,7 +251,6 @@ where
         /// How much data has been decrypted and hashed and is available
         /// in the `buffer`, without MDC.
         data_available: usize,
-        #[debug("BufDecryptor")]
         decryptor: BufDecryptor<M>,
         buffer: BytesMut,
         source: R,
@@ -263,6 +261,50 @@ where
         source: R,
     },
     Error,
+}
+
+impl<M, R> fmt::Debug for StreamDecryptorInner<M, R>
+where
+    M: BlockDecrypt + BlockEncryptMut + BlockCipher,
+    BufDecryptor<M>: KeyIvInit,
+    R: BufRead + fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Prefix {
+                prefix,
+                source,
+                protected,
+                ..
+            } => f
+                .debug_struct("Prefix")
+                .field("decryptor", &format_args!("BufDecryptor"))
+                .field("prefix", prefix)
+                .field("source", source)
+                .field("protected", protected)
+                .finish(),
+            Self::Data {
+                data_available,
+                buffer,
+                source,
+                protected,
+                ..
+            } => f
+                .debug_struct("Data")
+                .field("data_available", data_available)
+                .field("decryptor", &format_args!("BufDecryptor"))
+                .field("buffer", buffer)
+                .field("source", source)
+                .field("protected", protected)
+                .finish(),
+            Self::Done { buffer, source } => f
+                .debug_struct("Done")
+                .field("buffer", buffer)
+                .field("source", source)
+                .finish(),
+            Self::Error => f.write_str("Error"),
+        }
+    }
 }
 
 impl<M, R> StreamDecryptorInner<M, R>

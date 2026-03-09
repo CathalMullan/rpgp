@@ -1,4 +1,5 @@
 use std::cmp::PartialEq;
+use std::fmt;
 
 use log::debug;
 use ml_kem::{
@@ -25,15 +26,22 @@ pub const X25519_KEY_LEN: usize = 32;
 pub const ML_KEM768_KEY_LEN: usize = 64;
 
 /// Secret key for ML KEM 768 X25519
-#[derive(Clone, derive_more::Debug)]
+#[derive(Clone)]
 pub struct SecretKey {
-    #[debug("..")]
     x25519: StaticSecret,
-    #[debug("..")]
     ml_kem: Box<DecapsulationKey<MlKem768Params>>,
     /// Seed `d` and `z`
-    #[debug("..")]
     ml_kem_seed: (Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>),
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("x25519", &format_args!(".."))
+            .field("ml_kem", &format_args!(".."))
+            .field("ml_kem_seed", &format_args!(".."))
+            .finish()
+    }
 }
 #[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for SecretKey {}

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::{
     io::{self, BufRead},
     str,
@@ -44,13 +45,18 @@ use crate::{
 /// assert_eq!(users[0].id.id(), b"Carol Oldstyle <carol@openpgp.example>");
 /// # Ok(()) }
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-#[display("User ID: \"{:?}\"", id)]
 pub struct UserId {
     packet_header: PacketHeader,
     #[cfg_attr(test, proptest(strategy = "tests::id_gen()"))]
     id: Bytes,
+}
+
+impl fmt::Display for UserId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "User ID: \"{:?}\"", self.id)
+    }
 }
 
 impl UserId {

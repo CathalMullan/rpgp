@@ -1,13 +1,26 @@
+use std::fmt;
+
 use crate::zeroize::Zeroizing;
 
 /// A type to unlock a secret key packet, or an
 /// [SKESK packet](crate::packet::SymKeyEncryptedSessionKey).
 ///
 /// Can contain either a callback or an explicit value.
-#[derive(derive_more::Debug)]
 pub enum Password {
-    Dynamic(#[debug("Box<Fn>")] Box<dyn Fn() -> Zeroizing<Vec<u8>> + 'static + Send + Sync>),
-    Static(#[debug("***")] Zeroizing<Vec<u8>>),
+    Dynamic(Box<dyn Fn() -> Zeroizing<Vec<u8>> + 'static + Send + Sync>),
+    Static(Zeroizing<Vec<u8>>),
+}
+
+impl fmt::Debug for Password {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Dynamic(_callback) => f
+                .debug_tuple("Dynamic")
+                .field(&format_args!("Box<Fn>"))
+                .finish(),
+            Self::Static(_bytes) => f.debug_tuple("Static").field(&format_args!("***")).finish(),
+        }
+    }
 }
 
 impl From<String> for Password {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -44,33 +45,66 @@ pub enum S2kUsage {
 /// This specifies a symmetric encryption method, for using a symmetric key (that was obtained
 /// from a [`StringToKey`]) to lock secret key packets, or protect a session key in an
 /// [SKESK](crate::packet::SymKeyEncryptedSessionKey).
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum S2kParams {
     Unprotected,
     LegacyCfb {
         sym_alg: SymmetricKeyAlgorithm,
-        #[debug("{}", hex::encode(iv))]
         iv: Bytes,
     },
     Aead {
         sym_alg: SymmetricKeyAlgorithm,
         aead_mode: AeadAlgorithm,
         s2k: StringToKey,
-        #[debug("{}", hex::encode(nonce))]
         nonce: Bytes,
     },
     Cfb {
         sym_alg: SymmetricKeyAlgorithm,
         s2k: StringToKey,
-        #[debug("{}", hex::encode(iv))]
         iv: Bytes,
     },
     MalleableCfb {
         sym_alg: SymmetricKeyAlgorithm,
         s2k: StringToKey,
-        #[debug("{}", hex::encode(iv))]
         iv: Bytes,
     },
+}
+
+impl fmt::Debug for S2kParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unprotected => f.debug_struct("Unprotected").finish(),
+            Self::LegacyCfb { sym_alg, iv } => f
+                .debug_struct("LegacyCfb")
+                .field("sym_alg", sym_alg)
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .finish(),
+            Self::Aead {
+                sym_alg,
+                aead_mode,
+                s2k,
+                nonce,
+            } => f
+                .debug_struct("Aead")
+                .field("sym_alg", sym_alg)
+                .field("aead_mode", aead_mode)
+                .field("s2k", s2k)
+                .field("nonce", &format_args!("{}", hex::encode(nonce)))
+                .finish(),
+            Self::Cfb { sym_alg, s2k, iv } => f
+                .debug_struct("Cfb")
+                .field("sym_alg", sym_alg)
+                .field("s2k", s2k)
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .finish(),
+            Self::MalleableCfb { sym_alg, s2k, iv } => f
+                .debug_struct("MalleableCfb")
+                .field("sym_alg", sym_alg)
+                .field("s2k", s2k)
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .finish(),
+        }
+    }
 }
 
 impl From<&S2kParams> for u8 {
@@ -159,7 +193,7 @@ impl From<u8> for S2kUsage {
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-string-to-key-s2k-specifier>
 ///
 /// The output of a [`StringToKey`] is usually used with a [`S2kParams`].
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum StringToKey {
     /// Type ID 0
@@ -167,19 +201,14 @@ pub enum StringToKey {
     /// Type ID 1
     Salted {
         hash_alg: HashAlgorithm,
-        #[debug("{}", hex::encode(salt))]
         salt: [u8; 8],
     },
     /// Type ID 2
     #[cfg_attr(test, proptest(skip))] // doesn't roundtrip
-    Reserved {
-        #[debug("{}", hex::encode(unknown))]
-        unknown: Bytes,
-    },
+    Reserved { unknown: Bytes },
     /// Type ID 3
     IteratedAndSalted {
         hash_alg: HashAlgorithm,
-        #[debug("{}", hex::encode(salt))]
         salt: [u8; 8],
         count: u8,
     },
@@ -188,7 +217,6 @@ pub enum StringToKey {
     /// - [RFC 9106 &sect; 4.5 - Argon2 Parameter Choice](https://www.rfc-editor.org/rfc/rfc9106#section-4-5)
     /// - [RFC 9580 &sect; 3.7.1.4 - Argon2 S2K Specifier Type 4](https://www.rfc-editor.org/rfc/rfc9580#section-3.7.1.4)
     Argon2 {
-        #[debug("{}", hex::encode(salt))]
         salt: [u8; 16],
         /// one-octet number of passes t
         t: u8,
@@ -199,18 +227,57 @@ pub enum StringToKey {
     },
     /// Private/Experimental S2K: 100-110
     #[cfg_attr(test, proptest(skip))] // doesn't roundtrip
-    Private {
-        typ: u8,
-        #[debug("{}", hex::encode(unknown))]
-        unknown: Bytes,
-    },
+    Private { typ: u8, unknown: Bytes },
     /// Unknown S2K types
     #[cfg_attr(test, proptest(skip))] // doesn't roundtrip
-    Other {
-        typ: u8,
-        #[debug("{}", hex::encode(unknown))]
-        unknown: Bytes,
-    },
+    Other { typ: u8, unknown: Bytes },
+}
+
+impl fmt::Debug for StringToKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Simple { hash_alg } => f
+                .debug_struct("Simple")
+                .field("hash_alg", hash_alg)
+                .finish(),
+            Self::Salted { hash_alg, salt } => f
+                .debug_struct("Salted")
+                .field("hash_alg", hash_alg)
+                .field("salt", &format_args!("{}", hex::encode(salt)))
+                .finish(),
+            Self::Reserved { unknown } => f
+                .debug_struct("Reserved")
+                .field("unknown", &format_args!("{}", hex::encode(unknown)))
+                .finish(),
+            Self::IteratedAndSalted {
+                hash_alg,
+                salt,
+                count,
+            } => f
+                .debug_struct("IteratedAndSalted")
+                .field("hash_alg", hash_alg)
+                .field("salt", &format_args!("{}", hex::encode(salt)))
+                .field("count", count)
+                .finish(),
+            Self::Argon2 { salt, t, p, m_enc } => f
+                .debug_struct("Argon2")
+                .field("salt", &format_args!("{}", hex::encode(salt)))
+                .field("t", t)
+                .field("p", p)
+                .field("m_enc", m_enc)
+                .finish(),
+            Self::Private { typ, unknown } => f
+                .debug_struct("Private")
+                .field("typ", typ)
+                .field("unknown", &format_args!("{}", hex::encode(unknown)))
+                .finish(),
+            Self::Other { typ, unknown } => f
+                .debug_struct("Other")
+                .field("typ", typ)
+                .field("unknown", &format_args!("{}", hex::encode(unknown)))
+                .finish(),
+        }
+    }
 }
 
 impl StringToKey {

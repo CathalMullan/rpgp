@@ -1,3 +1,4 @@
+use std::fmt;
 use std::marker::PhantomData;
 
 use digest::{typenum::Unsigned, OutputSizeUser};
@@ -49,12 +50,16 @@ impl PgpEcdsaPublicKey for p256::ecdsa::VerifyingKey {
 }
 
 /// [`signature::Signer`] backed signer for PGP.
-#[derive(derive_more::Debug)]
-#[debug("EcdsaSigner({public_key:?})")]
 pub struct EcdsaSigner<T, C> {
     inner: T,
     public_key: PublicKey,
     _signature: PhantomData<C>,
+}
+
+impl<T, C> fmt::Debug for EcdsaSigner<T, C> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "EcdsaSigner({:?})", self.public_key)
+    }
 }
 
 impl<C, T> EcdsaSigner<T, C>

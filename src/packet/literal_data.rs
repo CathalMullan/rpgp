@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -27,14 +28,13 @@ use crate::{
 /// [`SymEncryptedProtectedData`](crate::packet::SymEncryptedProtectedData)).
 ///
 /// <https://www.rfc-editor.org/rfc/rfc9580.html#name-literal-data-packet-type-id>
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct LiteralData {
     packet_header: PacketHeader,
     header: LiteralDataHeader,
     /// Raw data, stored normalized to CRLF line endings, to make signing and verification
     /// simpler.
-    #[debug("{}", hex::encode(data))]
     #[cfg_attr(
         test,
         proptest(
@@ -43,6 +43,16 @@ pub struct LiteralData {
         )
     )]
     data: Bytes,
+}
+
+impl fmt::Debug for LiteralData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("LiteralData")
+            .field("packet_header", &self.packet_header)
+            .field("header", &self.header)
+            .field("data", &format_args!("{}", hex::encode(&self.data)))
+            .finish()
+    }
 }
 
 /// The metadata contained in a [`LiteralData`] packet.
@@ -57,7 +67,7 @@ pub struct LiteralData {
 /// SHOULD avoid storing any significant data in these fields
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-literal-data-packet-type-id>
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 pub struct LiteralDataHeader {
     mode: DataMode,
     /// The filename, may contain non utf-8 bytes

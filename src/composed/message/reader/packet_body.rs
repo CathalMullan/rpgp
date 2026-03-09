@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, Read};
 
 use bytes::{Buf, BytesMut};
@@ -19,10 +20,8 @@ pub struct PacketBodyReader<R: BufRead> {
     state: State<R>,
 }
 
-#[derive(derive_more::Debug)]
 enum State<R: BufRead> {
     Body {
-        #[debug("{}", hex::encode(buffer))]
         buffer: BytesMut,
         source: LimitedReader<R>,
     },
@@ -30,6 +29,20 @@ enum State<R: BufRead> {
         source: R,
     },
     Error,
+}
+
+impl<R: BufRead + fmt::Debug> fmt::Debug for State<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Body { buffer, source } => f
+                .debug_struct("Body")
+                .field("buffer", &format_args!("{}", hex::encode(buffer)))
+                .field("source", source)
+                .finish(),
+            Self::Done { source } => f.debug_struct("Done").field("source", source).finish(),
+            Self::Error => f.debug_struct("Error").finish(),
+        }
+    }
 }
 
 impl<R: BufRead> BufRead for PacketBodyReader<R> {

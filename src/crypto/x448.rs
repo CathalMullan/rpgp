@@ -1,3 +1,5 @@
+use std::fmt;
+
 use cx448::x448;
 use hkdf::HkdfExtract;
 use log::debug;
@@ -17,11 +19,18 @@ use crate::{
 pub const KEY_LEN: usize = 56;
 
 /// Secret key for X448
-#[derive(Clone, derive_more::Debug)]
+#[derive(Clone)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct SecretKey {
-    #[debug("..")]
     secret: x448::Secret,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("secret", &format_args!(".."))
+            .finish()
+    }
 }
 
 impl PartialEq for SecretKey {

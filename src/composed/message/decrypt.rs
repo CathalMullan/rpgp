@@ -1,3 +1,5 @@
+use std::fmt;
+
 use log::debug;
 #[cfg(feature = "zeroize")]
 use zeroize::{Zeroize, ZeroizeOnDrop};
@@ -42,9 +44,17 @@ pub enum PlainSessionKey {
 /// A raw session key, must be kept secret.
 ///
 /// Usually occurs as a building block of a [PlainSessionKey].
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
-pub struct RawSessionKey(#[debug("..")] Zeroizing<Vec<u8>>);
+pub struct RawSessionKey(Zeroizing<Vec<u8>>);
+
+impl fmt::Debug for RawSessionKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("RawSessionKey")
+            .field(&format_args!(".."))
+            .finish()
+    }
+}
 
 impl RawSessionKey {
     pub fn len(&self) -> usize {

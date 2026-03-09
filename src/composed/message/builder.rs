@@ -1,3 +1,4 @@
+use std::fmt;
 use std::{
     collections::VecDeque,
     io::{BufReader, BufWriter, Read, Write},
@@ -93,7 +94,7 @@ pub struct EncryptionSeipdV1 {
 }
 
 /// Configuration for a v2 SEIPD encrypted message
-#[derive(derive_more::Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct EncryptionSeipdV2 {
     session_key: RawSessionKey,
     sym_esks: Vec<SymKeyEncryptedSessionKey>,
@@ -101,8 +102,21 @@ pub struct EncryptionSeipdV2 {
     sym_alg: SymmetricKeyAlgorithm,
     aead: AeadAlgorithm,
     chunk_size: ChunkSize,
-    #[debug("{}", hex::encode(salt))]
     salt: [u8; 32],
+}
+
+impl fmt::Debug for EncryptionSeipdV2 {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("EncryptionSeipdV2")
+            .field("session_key", &self.session_key)
+            .field("sym_esks", &self.sym_esks)
+            .field("pub_esks", &self.pub_esks)
+            .field("sym_alg", &self.sym_alg)
+            .field("aead", &self.aead)
+            .field("chunk_size", &self.chunk_size)
+            .field("salt", &format_args!("{}", hex::encode(self.salt)))
+            .finish()
+    }
 }
 
 /// Common trait for all types of encryption that can happen in the context of a

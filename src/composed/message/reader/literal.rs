@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, Read};
 
 use bytes::{Buf, BytesMut};
@@ -13,21 +14,46 @@ use crate::{
 const BUFFER_SIZE: usize = 8 * 1024;
 
 /// Read the underlying literal data.
-#[derive(derive_more::Debug)]
 pub enum LiteralDataReader<R: BufRead> {
     Body {
         header: LiteralDataHeader,
         source: PacketBodyReader<R>,
-        #[debug("{}", hex::encode(buffer))]
         buffer: BytesMut,
     },
     Done {
         header: LiteralDataHeader,
         source: PacketBodyReader<R>,
-        #[debug("{}", hex::encode(buffer))]
         buffer: BytesMut,
     },
     Error,
+}
+
+impl<R: BufRead + fmt::Debug> fmt::Debug for LiteralDataReader<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Body {
+                header,
+                source,
+                buffer,
+            } => f
+                .debug_struct("Body")
+                .field("header", header)
+                .field("source", source)
+                .field("buffer", &format_args!("{}", hex::encode(buffer)))
+                .finish(),
+            Self::Done {
+                header,
+                source,
+                buffer,
+            } => f
+                .debug_struct("Done")
+                .field("header", header)
+                .field("source", source)
+                .field("buffer", &format_args!("{}", hex::encode(buffer)))
+                .finish(),
+            Self::Error => f.debug_struct("Error").finish(),
+        }
+    }
 }
 
 impl<R: BufRead> LiteralDataReader<R> {

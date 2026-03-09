@@ -1,3 +1,5 @@
+use std::fmt;
+
 use num_enum::TryFromPrimitive;
 use smallvec::SmallVec;
 
@@ -9,12 +11,24 @@ use crate::crypto::public_key::PublicKeyAlgorithm;
 ///
 /// This deprecated mechanism was intended to allow a specified key to issue revocations
 /// for a key.
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub struct RevocationKey {
     pub class: RevocationKeyClass,
     pub algorithm: PublicKeyAlgorithm,
-    #[debug("{}", hex::encode(fingerprint))]
     pub fingerprint: SmallVec<[u8; 20]>,
+}
+
+impl fmt::Debug for RevocationKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RevocationKey")
+            .field("class", &self.class)
+            .field("algorithm", &self.algorithm)
+            .field(
+                "fingerprint",
+                &format_args!("{}", hex::encode(&self.fingerprint)),
+            )
+            .finish()
+    }
 }
 
 /// "Class" setting for a [`RevocationKey`] subpacket (deprecated)

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::{
     hash::Hasher,
     io::{self, BufRead},
@@ -35,7 +36,7 @@ use crate::{
 };
 
 /// Raw secret key material in unlocked/unencrypted form
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 pub enum PlainSecretParams {
     RSA(rsa::SecretKey),
@@ -65,12 +66,51 @@ pub enum PlainSecretParams {
     Unknown {
         #[cfg_attr(feature = "zeroize", zeroize(skip))]
         alg: PublicKeyAlgorithm,
-        #[debug("{}", hex::encode(data))]
         data: Zeroizing<Vec<u8>>,
         #[cfg_attr(feature = "zeroize", zeroize(skip))]
-        #[debug("{}", hex::encode(pub_params))]
         pub_params: Bytes,
     },
+}
+
+impl fmt::Debug for PlainSecretParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RSA(key) => f.debug_tuple("RSA").field(key).finish(),
+            Self::DSA(key) => f.debug_tuple("DSA").field(key).finish(),
+            Self::ECDSA(key) => f.debug_tuple("ECDSA").field(key).finish(),
+            Self::ECDH(key) => f.debug_tuple("ECDH").field(key).finish(),
+            Self::Ed25519(key) => f.debug_tuple("Ed25519").field(key).finish(),
+            Self::Ed25519Legacy(key) => f.debug_tuple("Ed25519Legacy").field(key).finish(),
+            Self::X25519(key) => f.debug_tuple("X25519").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlKem768X25519(key) => f.debug_tuple("MlKem768X25519").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlKem1024X448(key) => f.debug_tuple("MlKem1024X448").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlDsa65Ed25519(key) => f.debug_tuple("MlDsa65Ed25519").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlDsa87Ed448(key) => f.debug_tuple("MlDsa87Ed448").field(key).finish(),
+            Self::Elgamal(key) => f.debug_tuple("Elgamal").field(key).finish(),
+            Self::X448(key) => f.debug_tuple("X448").field(key).finish(),
+            Self::Ed448(key) => f.debug_tuple("Ed448").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::SlhDsaShake128s(key) => f.debug_tuple("SlhDsaShake128s").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::SlhDsaShake128f(key) => f.debug_tuple("SlhDsaShake128f").field(key).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::SlhDsaShake256s(key) => f.debug_tuple("SlhDsaShake256s").field(key).finish(),
+            Self::Unknown {
+                alg,
+                data,
+                pub_params,
+            } => f
+                .debug_struct("Unknown")
+                .field("alg", alg)
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .field("pub_params", &format_args!("{}", hex::encode(pub_params)))
+                .finish(),
+        }
+    }
 }
 
 pub(crate) fn pad_key<const SIZE: usize>(val: &[u8]) -> Result<[u8; SIZE]> {

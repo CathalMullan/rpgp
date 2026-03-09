@@ -1,13 +1,21 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use slh_dsa::Shake256s;
 
 use crate::{errors::Result, parsing_reader::BufReadParsing, ser::Serialize};
 
-#[derive(derive_more::Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct SlhDsaShake256sPublicParams {
-    #[debug("{}", hex::encode(key.to_bytes()))]
     pub key: slh_dsa::VerifyingKey<Shake256s>,
+}
+
+impl fmt::Debug for SlhDsaShake256sPublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SlhDsaShake256sPublicParams")
+            .field("key", &format_args!("{}", hex::encode(self.key.to_bytes())))
+            .finish()
+    }
 }
 
 impl Eq for SlhDsaShake256sPublicParams {}

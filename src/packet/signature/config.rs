@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::Read;
 
 use byteorder::{BigEndian, ByteOrder};
@@ -64,7 +65,7 @@ pub struct SignatureConfig {
 }
 
 /// Version-specific data of a [`Signature`] packet
-#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum SignatureVersionSpecific {
     V2 {
         created: Timestamp,
@@ -76,9 +77,36 @@ pub enum SignatureVersionSpecific {
     },
     V4,
     V6 {
-        #[debug("{}", hex::encode(salt))]
         salt: Vec<u8>,
     },
+}
+
+impl fmt::Debug for SignatureVersionSpecific {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V2 {
+                created,
+                issuer_key_id,
+            } => f
+                .debug_struct("V2")
+                .field("created", created)
+                .field("issuer_key_id", issuer_key_id)
+                .finish(),
+            Self::V3 {
+                created,
+                issuer_key_id,
+            } => f
+                .debug_struct("V3")
+                .field("created", created)
+                .field("issuer_key_id", issuer_key_id)
+                .finish(),
+            Self::V4 => f.debug_struct("V4").finish(),
+            Self::V6 { salt } => f
+                .debug_struct("V6")
+                .field("salt", &format_args!("{}", hex::encode(salt)))
+                .finish(),
+        }
+    }
 }
 
 impl From<&SignatureVersionSpecific> for SignatureVersion {

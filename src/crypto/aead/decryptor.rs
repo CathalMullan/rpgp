@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, Read};
 
 use bytes::{Buf, BytesMut};
@@ -16,22 +17,34 @@ use crate::{
 /// Currently the tag size for all known aeads is 16.
 const AEAD_TAG_SIZE: usize = 16;
 
-#[derive(derive_more::Debug)]
 enum ModeData {
     Rfc9580 {
-        #[debug("{}", hex::encode(nonce))]
         nonce: Vec<u8>,
-        #[debug("{}", hex::encode(info))]
         info: [u8; 5],
     },
     Gnupg {
-        #[debug("{}", hex::encode(iv))]
         iv: Vec<u8>,
-        #[debug("{}", hex::encode(nonce))]
         nonce: Vec<u8>,
-        #[debug("{}", hex::encode(info))]
         info: [u8; 13],
     },
+}
+
+impl fmt::Debug for ModeData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Rfc9580 { nonce, info } => f
+                .debug_struct("Rfc9580")
+                .field("nonce", &format_args!("{}", hex::encode(nonce)))
+                .field("info", &format_args!("{}", hex::encode(info)))
+                .finish(),
+            Self::Gnupg { iv, nonce, info } => f
+                .debug_struct("Gnupg")
+                .field("iv", &format_args!("{}", hex::encode(iv)))
+                .field("nonce", &format_args!("{}", hex::encode(nonce)))
+                .field("info", &format_args!("{}", hex::encode(info)))
+                .finish(),
+        }
+    }
 }
 impl ModeData {
     fn nonce(&self) -> &[u8] {
@@ -49,7 +62,6 @@ impl ModeData {
     }
 }
 
-#[derive(derive_more::Debug)]
 pub struct StreamDecryptor<R: BufRead> {
     sym_alg: SymmetricKeyAlgorithm,
     aead: AeadAlgorithm,
@@ -58,18 +70,35 @@ pub struct StreamDecryptor<R: BufRead> {
     written: u64,
     chunk_index: u64,
     mode_data: ModeData,
-    #[debug("..")]
     message_key: Zeroizing<Vec<u8>>,
     source: R,
     /// finished reading from source?
     is_source_done: bool,
     /// main buffer
-    #[debug("{}", hex::encode(buffer))]
     buffer: BytesMut,
     /// end point of encrypted data in `buffer`
     in_buffer_end: usize,
     /// start point of decrypted data in `buffer`
     out_buffer_start: usize,
+}
+
+impl<R: BufRead + fmt::Debug> fmt::Debug for StreamDecryptor<R> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("StreamDecryptor")
+            .field("sym_alg", &self.sym_alg)
+            .field("aead", &self.aead)
+            .field("chunk_size_expanded", &self.chunk_size_expanded)
+            .field("written", &self.written)
+            .field("chunk_index", &self.chunk_index)
+            .field("mode_data", &self.mode_data)
+            .field("message_key", &format_args!(".."))
+            .field("source", &self.source)
+            .field("is_source_done", &self.is_source_done)
+            .field("buffer", &format_args!("{}", hex::encode(&self.buffer)))
+            .field("in_buffer_end", &self.in_buffer_end)
+            .field("out_buffer_start", &self.out_buffer_start)
+            .finish()
+    }
 }
 
 impl<R: BufRead> StreamDecryptor<R> {

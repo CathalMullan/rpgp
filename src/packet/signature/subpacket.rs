@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::BufRead;
 
 use byteorder::{BigEndian, WriteBytesExt};
@@ -279,7 +280,7 @@ impl Subpacket {
 /// [subpacket](https://www.rfc-editor.org/rfc/rfc9580.html#name-signature-subpacket-specifi)
 /// that occurs in a [`SignatureConfig`](crate::packet::SignatureConfig)
 /// as part of the metadata in a  [`Signature`] packet.
-#[derive(derive_more::Debug, PartialEq, Eq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum SubpacketData {
     /// The time the signature was made.
     SignatureCreationTime(Timestamp),
@@ -296,7 +297,7 @@ pub enum SubpacketData {
     PreferredHashAlgorithms(SmallVec<[HashAlgorithm; 8]>),
     /// List of compression algorithms that indicate which algorithms the key holder prefers to use.
     PreferredCompressionAlgorithms(SmallVec<[CompressionAlgorithm; 8]>),
-    KeyServerPreferences(#[debug("{}", hex::encode(_0))] SmallVec<[u8; 4]>),
+    KeyServerPreferences(SmallVec<[u8; 4]>),
     KeyFlags(KeyFlags),
     Features(Features),
     RevocationReason(RevocationCode, Bytes),
@@ -316,13 +317,104 @@ pub enum SubpacketData {
     PreferredEncryptionModes(SmallVec<[AeadAlgorithm; 2]>),
     IntendedRecipientFingerprint(Fingerprint),
     PreferredAeadAlgorithms(SmallVec<[(SymmetricKeyAlgorithm, AeadAlgorithm); 4]>),
-    Experimental(u8, #[debug("{}", hex::encode(_1))] Bytes),
-    Other(u8, #[debug("{}", hex::encode(_1))] Bytes),
-    SignatureTarget(
-        PublicKeyAlgorithm,
-        HashAlgorithm,
-        #[debug("{}", hex::encode(_2))] Bytes,
-    ),
+    Experimental(u8, Bytes),
+    Other(u8, Bytes),
+    SignatureTarget(PublicKeyAlgorithm, HashAlgorithm, Bytes),
+}
+
+impl fmt::Debug for SubpacketData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::SignatureCreationTime(time) => {
+                f.debug_tuple("SignatureCreationTime").field(time).finish()
+            }
+            Self::SignatureExpirationTime(duration) => f
+                .debug_tuple("SignatureExpirationTime")
+                .field(duration)
+                .finish(),
+            Self::KeyExpirationTime(duration) => {
+                f.debug_tuple("KeyExpirationTime").field(duration).finish()
+            }
+            Self::IssuerKeyId(key_id) => f.debug_tuple("IssuerKeyId").field(key_id).finish(),
+            Self::PreferredSymmetricAlgorithms(algs) => f
+                .debug_tuple("PreferredSymmetricAlgorithms")
+                .field(algs)
+                .finish(),
+            Self::PreferredHashAlgorithms(algs) => f
+                .debug_tuple("PreferredHashAlgorithms")
+                .field(algs)
+                .finish(),
+            Self::PreferredCompressionAlgorithms(algs) => f
+                .debug_tuple("PreferredCompressionAlgorithms")
+                .field(algs)
+                .finish(),
+            Self::KeyServerPreferences(prefs) => f
+                .debug_tuple("KeyServerPreferences")
+                .field(&format_args!("{}", hex::encode(prefs.as_ref())))
+                .finish(),
+            Self::KeyFlags(flags) => f.debug_tuple("KeyFlags").field(flags).finish(),
+            Self::Features(features) => f.debug_tuple("Features").field(features).finish(),
+            Self::RevocationReason(code, data) => f
+                .debug_tuple("RevocationReason")
+                .field(code)
+                .field(data)
+                .finish(),
+            Self::IsPrimary(is_primary) => f.debug_tuple("IsPrimary").field(is_primary).finish(),
+            Self::Revocable(revocable) => f.debug_tuple("Revocable").field(revocable).finish(),
+            Self::EmbeddedSignature(sig) => f.debug_tuple("EmbeddedSignature").field(sig).finish(),
+            Self::PreferredKeyServer(server) => {
+                f.debug_tuple("PreferredKeyServer").field(server).finish()
+            }
+            Self::Notation(notation) => f.debug_tuple("Notation").field(notation).finish(),
+            Self::RevocationKey(key) => f.debug_tuple("RevocationKey").field(key).finish(),
+            Self::SignersUserID(user_id) => f.debug_tuple("SignersUserID").field(user_id).finish(),
+            Self::PolicyURI(uri) => f.debug_tuple("PolicyURI").field(uri).finish(),
+            Self::TrustSignature(depth, amount) => f
+                .debug_tuple("TrustSignature")
+                .field(depth)
+                .field(amount)
+                .finish(),
+            Self::RegularExpression(regex) => {
+                f.debug_tuple("RegularExpression").field(regex).finish()
+            }
+            Self::ExportableCertification(exportable) => f
+                .debug_tuple("ExportableCertification")
+                .field(exportable)
+                .finish(),
+            Self::IssuerFingerprint(fingerprint) => f
+                .debug_tuple("IssuerFingerprint")
+                .field(fingerprint)
+                .finish(),
+            Self::PreferredEncryptionModes(modes) => f
+                .debug_tuple("PreferredEncryptionModes")
+                .field(modes)
+                .finish(),
+            Self::IntendedRecipientFingerprint(fingerprint) => f
+                .debug_tuple("IntendedRecipientFingerprint")
+                .field(fingerprint)
+                .finish(),
+            Self::PreferredAeadAlgorithms(algs) => f
+                .debug_tuple("PreferredAeadAlgorithms")
+                .field(algs)
+                .finish(),
+            Self::Experimental(tag, data) => f
+                .debug_tuple("Experimental")
+                .field(tag)
+                .field(&format_args!("{}", hex::encode(data)))
+                .finish(),
+            Self::Other(tag, data) => f
+                .debug_tuple("Other")
+                .field(tag)
+                .field(&format_args!("{}", hex::encode(data)))
+                .finish(),
+            Self::SignatureTarget(pub_alg, hash_alg, hash) => f
+                .debug_tuple("SignatureTarget")
+                .field(pub_alg)
+                .field(hash_alg)
+                .field(&format_args!("{}", hex::encode(hash)))
+                .finish(),
+        }
+    }
 }
 
 #[cfg(test)]

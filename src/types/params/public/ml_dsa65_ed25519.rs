@@ -1,15 +1,29 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use ml_dsa::MlDsa65;
 
 use crate::{errors::Result, parsing_reader::BufReadParsing, ser::Serialize};
 
-#[derive(derive_more::Debug, PartialEq, Clone)]
+#[derive(PartialEq, Clone)]
 pub struct MlDsa65Ed25519PublicParams {
-    #[debug("{}", hex::encode(ed25519.as_bytes()))]
     pub ed25519: ed25519_dalek::VerifyingKey,
-    #[debug("{}", hex::encode(ml_dsa.encode()))]
     pub ml_dsa: Box<ml_dsa::VerifyingKey<MlDsa65>>,
+}
+
+impl fmt::Debug for MlDsa65Ed25519PublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("MlDsa65Ed25519PublicParams")
+            .field(
+                "ed25519",
+                &format_args!("{}", hex::encode(self.ed25519.as_bytes())),
+            )
+            .field(
+                "ml_dsa",
+                &format_args!("{}", hex::encode(self.ml_dsa.encode())),
+            )
+            .finish()
+    }
 }
 
 impl Eq for MlDsa65Ed25519PublicParams {}

@@ -1,3 +1,5 @@
+use std::fmt;
+
 /// Represents a legacy OpenPGP Key ID.
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#key-ids-fingerprints>
@@ -13,10 +15,23 @@
 /// However, modern OpenPGP applications may still need to handle Key IDs to identify which key has
 /// been used to issue a [`Signature`](crate::packet::Signature), or to identify the recipient of
 /// a v3 [`PKESK`](crate::packet::PublicKeyEncryptedSessionKey).
-#[derive(Clone, Copy, Hash, Eq, PartialEq, derive_more::Debug, derive_more::Display)]
-#[display("{}", hex::encode(_0))]
+#[derive(Clone, Copy, Hash, Eq, PartialEq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
-pub struct KeyId(#[debug("{}", hex::encode(_0))] [u8; 8]);
+pub struct KeyId([u8; 8]);
+
+impl fmt::Debug for KeyId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("KeyId")
+            .field(&format_args!("{}", hex::encode(self.0)))
+            .finish()
+    }
+}
+
+impl fmt::Display for KeyId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", hex::encode(self.0))
+    }
+}
 
 impl AsRef<[u8]> for KeyId {
     fn as_ref(&self) -> &[u8] {

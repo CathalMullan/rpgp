@@ -1,3 +1,5 @@
+use std::fmt;
+
 #[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
@@ -7,15 +9,23 @@ use crate::{
 };
 
 /// Secret key for Elgamal.
-#[derive(Clone, PartialEq, derive_more::Debug, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(feature = "zeroize", derive(Zeroize))]
 pub struct SecretKey {
     /// MPI of Elgamal secret exponent x.
     // stored as vec to be zeroizable
-    #[debug("..")]
     x: Vec<u8>,
     #[cfg_attr(feature = "zeroize", zeroize(skip))]
     public: ElgamalPublicParams,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("x", &format_args!(".."))
+            .field("public", &self.public)
+            .finish()
+    }
 }
 
 impl SecretKey {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::WriteBytesExt;
@@ -30,7 +31,7 @@ use crate::{
 /// calculating the hash digest based on the Ops Packet (which occurs before the message payload),
 /// and validating the cryptographic signature in the Signature Packet (which occurs after the
 /// message payload) after hashing is completed.
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq, Debug)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct OnePassSignature {
     packet_header: PacketHeader,
@@ -45,7 +46,7 @@ pub struct OnePassSignature {
 ///
 /// - A v3 OPS contains the `key_id` of the signer.
 /// - A v6 OPS contains the v6 `fingerprint` of the signer, and the `salt` used in the signature.
-#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum OpsVersionSpecific {
     V3 {
@@ -53,18 +54,32 @@ pub enum OpsVersionSpecific {
     },
     V6 {
         #[cfg_attr(test, proptest(strategy = "any::<Vec<u8>>().prop_map(Into::into)"))]
-        #[debug("{}", hex::encode(salt))]
         salt: Bytes,
-        #[debug("{}", hex::encode(fingerprint))]
         fingerprint: [u8; 32],
     },
     #[cfg_attr(test, proptest(skip))]
     Unknown {
-        #[debug("{:X}", version)]
         version: u8,
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for OpsVersionSpecific {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::V3 { key_id } => f.debug_struct("V3").field("key_id", key_id).finish(),
+            Self::V6 { salt, fingerprint } => f
+                .debug_struct("V6")
+                .field("salt", &format_args!("{}", hex::encode(salt)))
+                .field("fingerprint", &format_args!("{}", hex::encode(fingerprint)))
+                .finish(),
+            Self::Unknown { version, data } => f
+                .debug_struct("Unknown")
+                .field("version", &format_args!("{:X}", version))
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
 }
 
 impl Serialize for OpsVersionSpecific {

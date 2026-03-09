@@ -1,3 +1,5 @@
+use std::fmt;
+
 use rand::{CryptoRng, Rng};
 use signature::{Signer as _, Verifier};
 use slh_dsa::Shake256s;
@@ -15,11 +17,18 @@ use crate::{
 pub const KEY_LEN: usize = 128;
 
 /// Secret key for SLH DSA Shake256s
-#[derive(Clone, PartialEq, derive_more::Debug)]
+#[derive(Clone, PartialEq)]
 pub struct SecretKey {
     /// The secret key.
-    #[debug("..")]
     key: slh_dsa::SigningKey<Shake256s>,
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("key", &format_args!(".."))
+            .finish()
+    }
 }
 
 impl Eq for SecretKey {}

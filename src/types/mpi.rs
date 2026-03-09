@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::{BigEndian, WriteBytesExt};
@@ -18,8 +19,16 @@ const MAX_EXTERN_MPI_BITS: u16 = 16384;
 /// The inner value is ready to be serialized, without the need to strip leading zeros.
 ///
 /// Ref: <https://www.rfc-editor.org/rfc/rfc9580.html#name-multiprecision-integers>
-#[derive(Default, Clone, PartialEq, Eq, derive_more::Debug)]
-pub struct Mpi(#[debug("{}", hex::encode(_0))] Bytes);
+#[derive(Default, Clone, PartialEq, Eq)]
+pub struct Mpi(Bytes);
+
+impl fmt::Debug for Mpi {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Mpi")
+            .field(&format_args!("{}", hex::encode(&self.0)))
+            .finish()
+    }
+}
 
 impl Mpi {
     /// Wraps the given bytes as an MPI, must be normalized before

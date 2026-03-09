@@ -1,3 +1,4 @@
+use std::fmt;
 use std::marker::PhantomData;
 
 use digest::{typenum::Unsigned, OutputSizeUser};
@@ -32,12 +33,16 @@ impl HPublicKey for RsaPublicKey {
 }
 
 /// [`signature::Signer`] backed signer for PGP.
-#[derive(derive_more::Debug)]
-#[debug("RsaSigner({public_key:?})")]
 pub struct RsaSigner<T, D> {
     inner: T,
     public_key: PublicKey,
     _digest: PhantomData<D>,
+}
+
+impl<T, D> fmt::Debug for RsaSigner<T, D> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "RsaSigner({:?})", self.public_key)
+    }
 }
 
 impl<T, D> RsaSigner<T, D>

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead, Read};
 
 use bytes::{Buf, BytesMut};
@@ -104,7 +105,6 @@ impl SignaturePacket {
     }
 }
 
-#[derive(derive_more::Debug)]
 pub enum SignatureManyReader<'a> {
     Init {
         /// Signature packets
@@ -121,7 +121,6 @@ pub enum SignatureManyReader<'a> {
         hashers: Vec<Option<NormalizingHasher>>,
         /// Data source
         source: Box<Message<'a>>,
-        #[debug("{}", hex::encode(buffer))]
         buffer: BytesMut,
     },
     Done {
@@ -133,6 +132,46 @@ pub enum SignatureManyReader<'a> {
         signatures: Vec<FullSignaturePacket>,
     },
     Error,
+}
+
+impl<'a> fmt::Debug for SignatureManyReader<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Init {
+                packets,
+                hashers,
+                source,
+            } => f
+                .debug_struct("Init")
+                .field("packets", packets)
+                .field("hashers", hashers)
+                .field("source", source)
+                .finish(),
+            Self::Body {
+                packets,
+                hashers,
+                source,
+                buffer,
+            } => f
+                .debug_struct("Body")
+                .field("packets", packets)
+                .field("hashers", hashers)
+                .field("source", source)
+                .field("buffer", &format_args!("{}", hex::encode(buffer)))
+                .finish(),
+            Self::Done {
+                hashes,
+                source,
+                signatures,
+            } => f
+                .debug_struct("Done")
+                .field("hashes", hashes)
+                .field("source", source)
+                .field("signatures", signatures)
+                .finish(),
+            Self::Error => f.debug_struct("Error").finish(),
+        }
+    }
 }
 
 impl<'a> SignatureManyReader<'a> {

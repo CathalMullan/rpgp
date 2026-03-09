@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use bytes::Bytes;
@@ -51,7 +52,7 @@ pub use self::{
 use super::PlainSecretParams;
 
 /// Raw public key material for any algorithm.
-#[derive(PartialEq, Eq, Clone, derive_more::Debug)]
+#[derive(PartialEq, Eq, Clone)]
 pub enum PublicParams {
     RSA(RsaPublicParams),
     DSA(DsaPublicParams),
@@ -78,9 +79,49 @@ pub enum PublicParams {
     #[cfg(feature = "draft-pqc")]
     SlhDsaShake256s(SlhDsaShake256sPublicParams),
     Unknown {
-        #[debug("{}", hex::encode(data))]
         data: Bytes,
     },
+}
+
+impl fmt::Debug for PublicParams {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::RSA(params) => f.debug_tuple("RSA").field(params).finish(),
+            Self::DSA(params) => f.debug_tuple("DSA").field(params).finish(),
+            Self::ECDSA(params) => f.debug_tuple("ECDSA").field(params).finish(),
+            Self::ECDH(params) => f.debug_tuple("ECDH").field(params).finish(),
+            Self::Elgamal(params) => f.debug_tuple("Elgamal").field(params).finish(),
+            Self::EdDSALegacy(params) => f.debug_tuple("EdDSALegacy").field(params).finish(),
+            Self::Ed25519(params) => f.debug_tuple("Ed25519").field(params).finish(),
+            Self::X25519(params) => f.debug_tuple("X25519").field(params).finish(),
+            Self::X448(params) => f.debug_tuple("X448").field(params).finish(),
+            Self::Ed448(params) => f.debug_tuple("Ed448").field(params).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlKem768X25519(params) => f.debug_tuple("MlKem768X25519").field(params).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlKem1024X448(params) => f.debug_tuple("MlKem1024X448").field(params).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlDsa65Ed25519(params) => f.debug_tuple("MlDsa65Ed25519").field(params).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::MlDsa87Ed448(params) => f.debug_tuple("MlDsa87Ed448").field(params).finish(),
+            #[cfg(feature = "draft-pqc")]
+            Self::SlhDsaShake128s(params) => {
+                f.debug_tuple("SlhDsaShake128s").field(params).finish()
+            }
+            #[cfg(feature = "draft-pqc")]
+            Self::SlhDsaShake128f(params) => {
+                f.debug_tuple("SlhDsaShake128f").field(params).finish()
+            }
+            #[cfg(feature = "draft-pqc")]
+            Self::SlhDsaShake256s(params) => {
+                f.debug_tuple("SlhDsaShake256s").field(params).finish()
+            }
+            Self::Unknown { data } => f
+                .debug_struct("Unknown")
+                .field("data", &format_args!("{}", hex::encode(data)))
+                .finish(),
+        }
+    }
 }
 
 impl TryFrom<&PlainSecretParams> for PublicParams {

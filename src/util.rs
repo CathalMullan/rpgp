@@ -1,5 +1,6 @@
 //! # Utilities
 
+use std::fmt;
 use std::{hash, io};
 
 use bytes::{Buf, BufMut, BytesMut};
@@ -112,70 +113,20 @@ impl<A: hash::Hasher, B: io::Write> io::Write for TeeWriter<'_, A, B> {
     }
 }
 
-#[cfg(test)]
-pub(crate) mod test {
-    use bytes::{Buf, Bytes};
-    use rand::Rng;
-
-    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
-                            abcdefghijklmnopqrstuvwxyz\
-                            0123456789)(*&^%$#@!~\r\n .,-!?\t";
-
-    pub(crate) fn random_string(rng: &mut impl Rng, size: usize) -> String {
-        (0..size)
-            .map(|_| {
-                let idx = rng.gen_range(0..CHARSET.len());
-                CHARSET[idx] as char
-            })
-            .collect()
-    }
-
-    pub(crate) fn random_utf8_string(rng: &mut impl Rng, size: usize) -> String {
-        (0..size).map(|_| rng.r#gen::<char>()).collect()
-    }
-
-    #[derive(Debug)]
-    pub(crate) struct ChaosReader<R: Rng> {
-        rng: R,
-        source: Bytes,
-    }
-
-    impl<R: Rng> ChaosReader<R> {
-        pub(crate) fn new(rng: R, source: impl Into<Bytes>) -> Self {
-            Self {
-                rng,
-                source: source.into(),
-            }
-        }
-    }
-
-    impl<R: Rng> std::io::Read for ChaosReader<R> {
-        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-            if !self.source.has_remaining() {
-                return Ok(0);
-            }
-            let max = buf.len().min(self.source.remaining());
-            let to_write: usize = self.rng.gen_range(1..=max);
-
-            self.source.copy_to_slice(&mut buf[..to_write]);
-            Ok(to_write)
-        }
-    }
-
-    pub(crate) fn check_strings(a: impl AsRef<str>, b: impl AsRef<str>) {
-        assert_eq!(
-            escape_string::escape(a.as_ref()),
-            escape_string::escape(b.as_ref())
-        );
-    }
-}
-
-#[derive(derive_more::Debug)]
 pub struct NormalizingHasher {
-    #[debug("hasher")]
     hasher: Box<dyn DynDigest + Send>,
     text_mode: bool,
     last_was_cr: bool,
+}
+
+impl fmt::Debug for NormalizingHasher {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("NormalizingHasher")
+            .field("hasher", &format_args!("hasher"))
+            .field("text_mode", &self.text_mode)
+            .field("last_was_cr", &self.last_was_cr)
+            .finish()
+    }
 }
 
 impl NormalizingHasher {
@@ -264,5 +215,63 @@ impl NormalizingHasher {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod test {
+    use bytes::{Buf, Bytes};
+    use rand::Rng;
+
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ\
+                            abcdefghijklmnopqrstuvwxyz\
+                            0123456789)(*&^%$#@!~\r\n .,-!?\t";
+
+    pub(crate) fn random_string(rng: &mut impl Rng, size: usize) -> String {
+        (0..size)
+            .map(|_| {
+                let idx = rng.gen_range(0..CHARSET.len());
+                CHARSET[idx] as char
+            })
+            .collect()
+    }
+
+    pub(crate) fn random_utf8_string(rng: &mut impl Rng, size: usize) -> String {
+        (0..size).map(|_| rng.r#gen::<char>()).collect()
+    }
+
+    #[derive(Debug)]
+    pub(crate) struct ChaosReader<R: Rng> {
+        rng: R,
+        source: Bytes,
+    }
+
+    impl<R: Rng> ChaosReader<R> {
+        pub(crate) fn new(rng: R, source: impl Into<Bytes>) -> Self {
+            Self {
+                rng,
+                source: source.into(),
+            }
+        }
+    }
+
+    impl<R: Rng> std::io::Read for ChaosReader<R> {
+        fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+            if !self.source.has_remaining() {
+                return Ok(0);
+            }
+            let max = buf.len().min(self.source.remaining());
+            let to_write: usize = self.rng.gen_range(1..=max);
+
+            self.source.copy_to_slice(&mut buf[..to_write]);
+            Ok(to_write)
+        }
+    }
+
+    pub(crate) fn check_strings(a: impl AsRef<str>, b: impl AsRef<str>) {
+        assert_eq!(
+            escape_string::escape(a.as_ref()),
+            escape_string::escape(b.as_ref())
+        );
     }
 }

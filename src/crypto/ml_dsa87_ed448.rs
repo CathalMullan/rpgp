@@ -1,3 +1,5 @@
+use std::fmt;
+
 use ml_dsa::{KeyGen, MlDsa87};
 use rand::{CryptoRng, Rng};
 use signature::{Signer as _, Verifier};
@@ -17,18 +19,28 @@ pub const ED448_KEY_LEN: usize = 57;
 pub const ML_DSA87_KEY_LEN: usize = 32;
 
 /// Secret key for ML DSA 87 with Curve448.
-#[derive(Clone, PartialEq, derive_more::Debug)]
+#[derive(Clone, PartialEq)]
 pub struct SecretKey {
     /// The secret point.
-    #[debug("..")]
     ed448: cx448::SigningKey,
-    #[debug("..")]
     ml_dsa_sign: Box<ml_dsa::SigningKey<MlDsa87>>,
-    #[debug("{}", hex::encode(ml_dsa_verify.encode()))]
     ml_dsa_verify: Box<ml_dsa::VerifyingKey<MlDsa87>>,
     // Store the seed, as it can't be extracted from the ml_dsa keys currently
-    #[debug("..")]
     ml_dsa_seed: [u8; ML_DSA87_KEY_LEN],
+}
+
+impl fmt::Debug for SecretKey {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SecretKey")
+            .field("ed448", &format_args!(".."))
+            .field("ml_dsa_sign", &format_args!(".."))
+            .field(
+                "ml_dsa_verify",
+                &format_args!("{}", hex::encode(self.ml_dsa_verify.encode())),
+            )
+            .field("ml_dsa_seed", &format_args!(".."))
+            .finish()
+    }
 }
 
 impl Eq for SecretKey {}
