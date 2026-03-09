@@ -1,13 +1,33 @@
 //! # Line ending normalization module
 
-use std::sync::LazyLock;
+use std::borrow::Cow;
 
 use bytes::{Buf, BufMut, BytesMut};
 
 use crate::{line_writer::LineBreak, util::fill_buffer};
 
-static RE: LazyLock<regex::bytes::Regex> =
-    LazyLock::new(|| regex::bytes::Regex::new(r"(\r\n|\n)").expect("valid regex"));
+/// Replaces `\r\n` or `\n` with `replacement`.
+fn replace_line_endings<'a>(input: &'a [u8], replacement: &[u8]) -> Cow<'a, [u8]> {
+    if !input.contains(&b'\n') {
+        return Cow::Borrowed(input);
+    }
+
+    let mut output = Vec::with_capacity(input.len());
+
+    let mut iter = input.iter().copied().peekable();
+    while let Some(byte) = iter.next() {
+        match byte {
+            b'\r' if iter.peek() == Some(&b'\n') => {
+                iter.next();
+                output.extend_from_slice(replacement);
+            }
+            b'\n' => output.extend_from_slice(replacement),
+            _ => output.push(byte),
+        }
+    }
+
+    Cow::Owned(output)
+}
 
 /// This struct wraps a reader and normalize line endings.
 pub struct NormalizedReader<R>
@@ -42,7 +62,7 @@ impl<R: std::io::Read> NormalizedReader<R> {
 
         // the previous read was guaranteed to have filled up the buffer (otherwise we would have
         // switched to `self.is_done`, so this is the last byte of the previous read.
-        // If this is a CR, it wasn’t handled in the previous call.
+        // If this is a CR, it wasn't handled in the previous call.
         let last_char = self.in_buffer[self.in_buffer.len() - 1];
 
         let read = fill_buffer(&mut self.source, &mut self.in_buffer, None)?;
@@ -77,7 +97,7 @@ impl<R: std::io::Read> NormalizedReader<R> {
         match (edge_case, read > 0) {
             ([CR, LF], true) => {
                 // Edge case, we need to normalize this pair of bytes separately.
-                let res = RE.replace_all(&edge_case, self.line_break.as_ref());
+                let res = replace_line_endings(&edge_case, self.line_break.as_ref());
                 self.replaced.extend_from_slice(&res);
 
                 // We already processed the leading LF in `self.in_buffer`,  so it’s omitted from the final normalization step.
@@ -91,7 +111,7 @@ impl<R: std::io::Read> NormalizedReader<R> {
         }
 
         // Normalize the remaining part of the buffer ...
-        let res = RE.replace_all(&self.in_buffer[start..end], self.line_break.as_ref());
+        let res = replace_line_endings(&self.in_buffer[start..end], self.line_break.as_ref());
         // ... and copy it into `self.replaced`.
         self.replaced.extend_from_slice(&res);
     }
@@ -112,14 +132,12 @@ impl<R: std::io::Read> std::io::Read for NormalizedReader<R> {
     }
 }
 
-pub(crate) fn normalize_lines(s: &str, line_break: LineBreak) -> std::borrow::Cow<'_, str> {
-    let bytes = RE.replace_all(s.as_bytes(), line_break.as_ref());
+pub(crate) fn normalize_lines(s: &str, line_break: LineBreak) -> Cow<'_, str> {
+    let bytes = replace_line_endings(s.as_bytes(), line_break.as_ref());
     match bytes {
-        std::borrow::Cow::Borrowed(bytes) => {
-            std::borrow::Cow::Borrowed(std::str::from_utf8(bytes).expect("valid bytes in"))
-        }
-        std::borrow::Cow::Owned(bytes) => {
-            std::borrow::Cow::Owned(std::string::String::from_utf8(bytes).expect("valid bytes in"))
+        Cow::Borrowed(bytes) => Cow::Borrowed(std::str::from_utf8(bytes).expect("valid bytes in")),
+        Cow::Owned(bytes) => {
+            Cow::Owned(std::string::String::from_utf8(bytes).expect("valid bytes in"))
         }
     }
 }

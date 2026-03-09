@@ -34,7 +34,6 @@ nom = "8.0"
 log = "0.4.22"
 smallvec = "1.10.0"
 derive_more = { version = "2.0.1", features = ["debug", "display"] }
-regex = "1.7"
 snafu = { version = "0.8.5", features = ["rust_1_81"] }
 
 # Compression
@@ -123,6 +122,7 @@ criterion = { version = "0.5", features = ["html_reports"] }
 tempfile = "3.14.0"
 proptest = { version = "1.6.0", features = ["proptest-macro"] }
 proptest-derive = "0.5.1"
+regex = "1.7"
 escape_string = "0.1.2"
 testresult = "0.4.1"
 
