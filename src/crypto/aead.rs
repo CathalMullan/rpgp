@@ -13,10 +13,9 @@ use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
 use ocb3::{Nonce as Ocb3Nonce, Ocb3};
 use sha2::Sha256;
 use snafu::Snafu;
-use zeroize::Zeroizing;
 
 use super::sym::SymmetricKeyAlgorithm;
-use crate::types::Tag;
+use crate::{types::Tag, zeroize::Zeroizing};
 
 type Aes128Ocb3 = Ocb3<Aes128, U15, U16>;
 type Aes192Ocb3 = Ocb3<Aes192, U15, U16>;

@@ -30,11 +30,12 @@ use crate::{
 /// [SignedSecretKey](crate::composed::SignedSecretKey) composed object.
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-secret-key-packet-type-id-5>
-#[derive(Debug, PartialEq, Eq, Clone, zeroize::ZeroizeOnDrop)]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
 pub struct SecretKey {
-    #[zeroize(skip)]
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     packet_header: PacketHeader,
-    #[zeroize(skip)]
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     details: super::PublicKey,
     secret_params: SecretParams,
 }
@@ -45,11 +46,12 @@ pub struct SecretKey {
 /// [SignedSecretKey](crate::composed::SignedSecretKey) composed object.
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-secret-subkey-packet-type-i>
-#[derive(Debug, PartialEq, Eq, Clone, zeroize::ZeroizeOnDrop)]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
 pub struct SecretSubkey {
-    #[zeroize(skip)]
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     packet_header: PacketHeader,
-    #[zeroize(skip)]
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     details: super::PublicSubkey,
     secret_params: SecretParams,
 }

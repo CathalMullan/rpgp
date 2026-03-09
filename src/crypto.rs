@@ -1,9 +1,8 @@
 //! Low-level cryptographic building blocks
 
-use zeroize::Zeroizing;
+use crate::{types::SignatureBytes, zeroize::Zeroizing};
 
 use self::hash::HashAlgorithm;
-use crate::types::SignatureBytes;
 
 // Symmetric
 

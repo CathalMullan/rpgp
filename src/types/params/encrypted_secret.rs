@@ -3,6 +3,7 @@ use std::{io, io::Write};
 use byteorder::WriteBytesExt;
 use bytes::{Buf, Bytes, BytesMut};
 use digest::Digest;
+#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -25,6 +26,7 @@ pub struct EncryptedSecretParams {
 }
 
 // Fake impl, we don't need to zeroize, as everything is encrypted
+#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for EncryptedSecretParams {}
 
 impl EncryptedSecretParams {

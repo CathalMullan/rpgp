@@ -5,19 +5,22 @@ use log::debug;
 use rand::{CryptoRng, Rng};
 use sha2::Sha256;
 use x25519_dalek::{PublicKey, StaticSecret};
-use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     crypto::{aes_kw, Decryptor},
     errors::{ensure, Result},
     ser::Serialize,
     types::X25519PublicParams,
+    zeroize::Zeroizing,
 };
 
 pub const KEY_LEN: usize = 32;
 
 /// Secret key for X25519
-#[derive(Clone, derive_more::Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct SecretKey {
     #[debug("..")]
     secret: StaticSecret,

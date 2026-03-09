@@ -3,19 +3,22 @@ use hkdf::HkdfExtract;
 use log::debug;
 use rand::{CryptoRng, Rng};
 use sha2::Sha512;
-use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     crypto::{aes_kw, Decryptor},
     errors::{bail, ensure, Result},
     ser::Serialize,
     types::X448PublicParams,
+    zeroize::Zeroizing,
 };
 
 pub const KEY_LEN: usize = 56;
 
 /// Secret key for X448
-#[derive(Clone, derive_more::Debug, Zeroize, ZeroizeOnDrop)]
+#[derive(Clone, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct SecretKey {
     #[debug("..")]
     secret: x448::Secret,

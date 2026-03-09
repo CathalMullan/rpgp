@@ -1,6 +1,7 @@
 use ml_dsa::{KeyGen, MlDsa65};
 use rand::{CryptoRng, Rng};
 use signature::{Signer as _, Verifier};
+#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -31,6 +32,7 @@ pub struct SecretKey {
 
 impl Eq for SecretKey {}
 
+#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for SecretKey {}
 
 impl From<&SecretKey> for MlDsa65Ed25519PublicParams {

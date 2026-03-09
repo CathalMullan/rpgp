@@ -15,13 +15,15 @@ use signature::{
     hazmat::{PrehashSigner, PrehashVerifier},
     SignatureEncoding,
 };
-use zeroize::{ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::ZeroizeOnDrop;
 
 use crate::{
     crypto::{hash::HashAlgorithm, Decryptor, Signer},
     errors::{format_err, unsupported_err, Error, Result},
     ser::Serialize,
     types::{Mpi, PkeskBytes, RsaPublicParams, SignatureBytes},
+    zeroize::Zeroizing,
 };
 
 /// MAX_KEY_SIZE limits rsa key size while parsing public key packets
@@ -34,7 +36,8 @@ pub(crate) const MAX_KEY_SIZE: usize = 16384;
 const MAX_KEY_SIZE_GENERATE: usize = 4096;
 
 /// Private Key for RSA.
-#[derive(derive_more::Debug, ZeroizeOnDrop, Clone, PartialEq, Eq)]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey(
     #[debug("..")]

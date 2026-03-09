@@ -1,5 +1,6 @@
 use std::io::{self, BufRead};
 
+#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -13,7 +14,8 @@ use crate::{
 ///
 /// Can either contain a password-locked [`EncryptedSecretParams`] or an unprotected
 /// [`PlainSecretParams`].
-#[derive(Debug, Clone, PartialEq, Eq, ZeroizeOnDrop)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[allow(clippy::large_enum_variant)]
 pub enum SecretParams {
     Plain(PlainSecretParams),

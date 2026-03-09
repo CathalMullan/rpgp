@@ -8,13 +8,15 @@ use ml_kem::{
 use rand::{CryptoRng, Rng};
 use sha3::{Digest, Sha3_256};
 use x25519_dalek::{PublicKey, StaticSecret};
-use zeroize::{ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::ZeroizeOnDrop;
 
 use crate::{
     crypto::{aes_kw, public_key::PublicKeyAlgorithm, Decryptor},
     errors::{ensure, Result},
     ser::Serialize,
     types::MlKem768X25519PublicParams,
+    zeroize::Zeroizing,
 };
 
 /// Size in bytes of the X25519 secret key.
@@ -33,6 +35,7 @@ pub struct SecretKey {
     #[debug("..")]
     ml_kem_seed: (Zeroizing<[u8; 32]>, Zeroizing<[u8; 32]>),
 }
+#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for SecretKey {}
 
 impl From<&SecretKey> for MlKem768X25519PublicParams {

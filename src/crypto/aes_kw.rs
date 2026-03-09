@@ -3,7 +3,8 @@ use generic_array::{
     GenericArray,
 };
 use snafu::{ResultExt, Snafu};
-use zeroize::Zeroizing;
+
+use crate::zeroize::Zeroizing;
 
 const IV_LEN: usize = 8;
 

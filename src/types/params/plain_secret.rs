@@ -8,7 +8,8 @@ use bytes::{BufMut, Bytes, BytesMut};
 use hkdf::Hkdf;
 use log::debug;
 use sha2::Sha256;
-use zeroize::{ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::ZeroizeOnDrop;
 
 #[cfg(feature = "draft-pqc")]
 use crate::crypto::{
@@ -30,10 +31,12 @@ use crate::{
         PublicParams, S2kParams, StringToKey, Tag,
     },
     util::TeeWriter,
+    zeroize::Zeroizing,
 };
 
 /// Raw secret key material in unlocked/unencrypted form
-#[derive(Clone, PartialEq, Eq, derive_more::Debug, ZeroizeOnDrop)]
+#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 pub enum PlainSecretParams {
     RSA(rsa::SecretKey),
     DSA(dsa::SecretKey),
@@ -60,11 +63,11 @@ pub enum PlainSecretParams {
     #[cfg(feature = "draft-pqc")]
     SlhDsaShake256s(slh_dsa_shake256s::SecretKey),
     Unknown {
-        #[zeroize(skip)]
+        #[cfg_attr(feature = "zeroize", zeroize(skip))]
         alg: PublicKeyAlgorithm,
         #[debug("{}", hex::encode(data))]
         data: Zeroizing<Vec<u8>>,
-        #[zeroize(skip)]
+        #[cfg_attr(feature = "zeroize", zeroize(skip))]
         #[debug("{}", hex::encode(pub_params))]
         pub_params: Bytes,
     },

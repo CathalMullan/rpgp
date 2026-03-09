@@ -2,7 +2,6 @@ use std::io::{self, BufRead, Read};
 
 use bytes::{Buf, BytesMut};
 use log::debug;
-use zeroize::Zeroizing;
 
 use crate::{
     crypto::{
@@ -11,6 +10,7 @@ use crate::{
     },
     types::Tag,
     util::fill_buffer_bytes,
+    zeroize::Zeroizing,
 };
 
 /// Currently the tag size for all known aeads is 16.

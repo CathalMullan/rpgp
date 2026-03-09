@@ -1,7 +1,8 @@
 use log::debug;
 use rand::{CryptoRng, Rng};
 use x25519_dalek::{PublicKey, StaticSecret};
-use zeroize::{ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::ZeroizeOnDrop;
 
 use super::hash::HashAlgorithm;
 use crate::{
@@ -12,6 +13,7 @@ use crate::{
     errors::{ensure, ensure_eq, unsupported_err, Error, Result},
     ser::Serialize,
     types::{ecdh::EcdhKdfType, pad_key, EcdhPublicParams, Mpi, PkeskBytes},
+    zeroize::Zeroizing,
 };
 
 /// 20 octets representing "Anonymous Sender    ".
@@ -21,7 +23,8 @@ const ANON_SENDER: [u8; 20] = [
 ];
 
 /// ECDH Curve25519 secret key
-#[derive(Clone, ZeroizeOnDrop, derive_more::Debug)]
+#[derive(Clone, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 pub struct Curve25519(#[debug("..")] StaticSecret);
 
 impl From<StaticSecret> for Curve25519 {
@@ -74,7 +77,8 @@ impl Curve25519 {
 }
 
 /// Secret key for ECDH
-#[derive(Clone, PartialEq, Eq, ZeroizeOnDrop, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum SecretKey {
     /// ECDH with Curve25519

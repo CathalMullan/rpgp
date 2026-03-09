@@ -1,11 +1,13 @@
 use log::debug;
-use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 use crate::{
     crypto::sym::SymmetricKeyAlgorithm,
     errors::{ensure, unsupported_err, Result},
     packet::SymKeyEncryptedSessionKey,
     types::{Password, SkeskVersion},
+    zeroize::Zeroizing,
 };
 
 /// Decrypted session key.
@@ -18,7 +20,8 @@ use crate::{
 /// (Note that SED packets are malleable. They are historical and considered dangerous!
 /// They MUST NOT be produced and decryption is also discouraged:
 /// <https://www.rfc-editor.org/rfc/rfc9580.html#sed>)
-#[derive(Debug, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub enum PlainSessionKey {
     /// A session key from a v3 PKESK or a v4 SKESK
     ///
@@ -39,7 +42,8 @@ pub enum PlainSessionKey {
 /// A raw session key, must be kept secret.
 ///
 /// Usually occurs as a building block of a [PlainSessionKey].
-#[derive(derive_more::Debug, Clone, PartialEq, Eq, Zeroize, ZeroizeOnDrop)]
+#[derive(derive_more::Debug, Clone, PartialEq, Eq)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct RawSessionKey(#[debug("..")] Zeroizing<Vec<u8>>);
 
 impl RawSessionKey {

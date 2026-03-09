@@ -16,13 +16,15 @@ use std::ops::Deref;
 
 use rand::{CryptoRng, Rng};
 use signature::{Signer as _, Verifier};
-use zeroize::{ZeroizeOnDrop, Zeroizing};
+#[cfg(feature = "zeroize")]
+use zeroize::ZeroizeOnDrop;
 
 use crate::{
     crypto::{hash::HashAlgorithm, Signer},
     errors::{bail, ensure, ensure_eq, Result},
     ser::Serialize,
     types::{Ed25519PublicParams, EddsaLegacyPublicParams, Mpi, SignatureBytes},
+    zeroize::Zeroizing,
 };
 
 const MIN_HASH_LEN_BITS: usize = 256;
@@ -47,14 +49,15 @@ pub enum Mode {
 }
 
 /// Secret key for EdDSA with Curve25519, the only combination we currently support.
-#[derive(Clone, PartialEq, Eq, ZeroizeOnDrop, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey {
     /// The secret point.
     #[debug("..")]
     #[cfg_attr(test, proptest(strategy = "tests::key_gen()"))]
     secret: ed25519_dalek::SigningKey,
-    #[zeroize(skip)]
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     pub(crate) mode: Mode,
 }
 

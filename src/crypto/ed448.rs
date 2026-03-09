@@ -1,4 +1,5 @@
 use rand::{CryptoRng, Rng};
+#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -14,7 +15,8 @@ const MIN_HASH_LEN_BITS: usize = 512;
 pub const KEY_LEN: usize = 57;
 
 /// Secret key for EdDSA with Curve448.
-#[derive(Clone, PartialEq, Eq, ZeroizeOnDrop, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey {
     /// The secret point.

@@ -1,4 +1,4 @@
-use zeroize::Zeroizing;
+use crate::zeroize::Zeroizing;
 
 /// A type to unlock a secret key packet, or an
 /// [SKESK packet](crate::packet::SymKeyEncryptedSessionKey).

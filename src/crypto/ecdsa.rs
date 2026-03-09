@@ -2,6 +2,7 @@ use ecdsa::SigningKey;
 use p521::NistP521;
 use rand::{CryptoRng, Rng};
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
+#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -11,7 +12,8 @@ use crate::{
     types::{EcdsaPublicParams, Mpi, SignatureBytes},
 };
 
-#[derive(Clone, PartialEq, Eq, ZeroizeOnDrop, derive_more::Debug)]
+#[derive(Clone, PartialEq, Eq, derive_more::Debug)]
+#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum SecretKey {
     P256(
@@ -39,7 +41,7 @@ pub enum SecretKey {
         /// The secret point.
         #[debug("..")]
         x: Vec<u8>,
-        #[zeroize(skip)]
+        #[cfg_attr(feature = "zeroize", zeroize(skip))]
         curve: ECCCurve,
     },
 }

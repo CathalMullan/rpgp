@@ -3,7 +3,6 @@ use std::io::{self, BufRead};
 use byteorder::WriteBytesExt;
 use bytes::Bytes;
 use rand::{CryptoRng, Rng};
-use zeroize::Zeroizing;
 
 use crate::{
     composed::RawSessionKey,
@@ -12,6 +11,7 @@ use crate::{
     parsing_reader::BufReadParsing,
     ser::Serialize,
     types::KeyVersion,
+    zeroize::Zeroizing,
 };
 
 const EXPBIAS: u32 = 6;

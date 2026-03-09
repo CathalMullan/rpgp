@@ -1,3 +1,4 @@
+#[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 use crate::{
@@ -6,13 +7,14 @@ use crate::{
 };
 
 /// Secret key for Elgamal.
-#[derive(Clone, PartialEq, Zeroize, derive_more::Debug, Eq)]
+#[derive(Clone, PartialEq, derive_more::Debug, Eq)]
+#[cfg_attr(feature = "zeroize", derive(Zeroize))]
 pub struct SecretKey {
     /// MPI of Elgamal secret exponent x.
     // stored as vec to be zeroizable
     #[debug("..")]
     x: Vec<u8>,
-    #[zeroize(skip)]
+    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     public: ElgamalPublicParams,
 }
 
