@@ -27,7 +27,6 @@ base64 = ">=0.21.7, < 0.23"
 buffer-redux = { version = "1.0.0", default-features = false }
 bytes = "1.11.1"
 byteorder = "1.4"
-derive_builder = "0.20.0"
 hex = "0.4"
 nom = "8.0"
 log = "0.4.22"

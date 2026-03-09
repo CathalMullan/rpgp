@@ -1,6 +1,6 @@
 use std::cmp::PartialEq;
+use std::error::Error as StdError;
 
-use derive_builder::Builder;
 use rand::{CryptoRng, Rng};
 use smallvec::SmallVec;
 
@@ -47,102 +47,387 @@ impl EncryptionCaps {
 }
 
 /// Parameters for the creation of a [`SignedSecretKey`]
-#[derive(Debug, PartialEq, Eq, Builder)]
-#[builder(build_fn(validate = "Self::validate"))]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SecretKeyParams {
     /// OpenPGP key version of primary
-    #[builder(default)]
     version: types::KeyVersion,
 
     /// Asymmetric algorithm for the primary
     key_type: KeyType,
 
     // -- Keyflags for primary
-    #[builder(default)]
     can_sign: bool,
-    #[builder(default)]
     can_certify: bool,
-    #[builder(default)]
     can_encrypt: EncryptionCaps,
-    #[builder(default)]
     can_authenticate: bool,
 
     // -- Metadata for the primary key
-    #[builder(default = "Timestamp::now()")]
     created_at: Timestamp,
-    #[builder(default = "true")]
     feature_seipd_v1: bool,
-    #[builder(default)]
     feature_seipd_v2: bool,
 
     // -- Public-facing preferences on the certificate
     /// List of symmetric algorithms that indicate which algorithms the key holder prefers to use.
-    #[builder(default)]
     preferred_symmetric_algorithms: SmallVec<[SymmetricKeyAlgorithm; 8]>,
     /// List of hash algorithms that indicate which algorithms the key holder prefers to use.
-    #[builder(default)]
     preferred_hash_algorithms: SmallVec<[HashAlgorithm; 8]>,
     /// List of compression algorithms that indicate which algorithms the key holder prefers to use.
-    #[builder(default)]
     preferred_compression_algorithms: SmallVec<[CompressionAlgorithm; 8]>,
     /// List of AEAD algorithms that indicate which algorithms the key holder prefers to use.
-    #[builder(default)]
     preferred_aead_algorithms: SmallVec<[(SymmetricKeyAlgorithm, AeadAlgorithm); 4]>,
 
     // -- Password-locking of the primary
-    #[builder(default)]
     passphrase: Option<String>,
-    #[builder(default)]
     s2k: Option<S2kParams>,
 
     // -- Packet framing for the primary key
-    #[builder(default)]
     packet_version: types::PacketHeaderVersion,
 
     // -- Associated components
     /// Primary User ID, required for v4 keys, but not required for v6 keys
-    #[builder(default, setter(custom))]
     primary_user_id: Option<String>,
-    #[builder(default)]
     user_ids: Vec<String>,
-    #[builder(default)]
     user_attributes: Vec<UserAttribute>,
-    #[builder(default)]
     subkeys: Vec<SubkeyParams>,
 }
 
+/// Builder for [`SecretKeyParams`].
+#[derive(Clone, Default)]
+pub struct SecretKeyParamsBuilder {
+    version: Option<types::KeyVersion>,
+    key_type: Option<KeyType>,
+    can_sign: Option<bool>,
+    can_certify: Option<bool>,
+    can_encrypt: Option<EncryptionCaps>,
+    can_authenticate: Option<bool>,
+    created_at: Option<Timestamp>,
+    feature_seipd_v1: Option<bool>,
+    feature_seipd_v2: Option<bool>,
+    preferred_symmetric_algorithms: Option<SmallVec<[SymmetricKeyAlgorithm; 8]>>,
+    preferred_hash_algorithms: Option<SmallVec<[HashAlgorithm; 8]>>,
+    preferred_compression_algorithms: Option<SmallVec<[CompressionAlgorithm; 8]>>,
+    preferred_aead_algorithms: Option<SmallVec<[(SymmetricKeyAlgorithm, AeadAlgorithm); 4]>>,
+    passphrase: Option<Option<String>>,
+    s2k: Option<Option<S2kParams>>,
+    packet_version: Option<types::PacketHeaderVersion>,
+    primary_user_id: Option<Option<String>>,
+    user_ids: Option<Vec<String>>,
+    user_attributes: Option<Vec<UserAttribute>>,
+    subkeys: Option<Vec<SubkeyParams>>,
+}
+
+impl SecretKeyParamsBuilder {
+    pub fn version(&mut self, value: types::KeyVersion) -> &mut Self {
+        self.version = Some(value);
+        self
+    }
+
+    pub fn key_type(&mut self, value: KeyType) -> &mut Self {
+        self.key_type = Some(value);
+        self
+    }
+
+    pub fn can_sign(&mut self, value: bool) -> &mut Self {
+        self.can_sign = Some(value);
+        self
+    }
+
+    pub fn can_certify(&mut self, value: bool) -> &mut Self {
+        self.can_certify = Some(value);
+        self
+    }
+
+    pub fn can_encrypt(&mut self, value: EncryptionCaps) -> &mut Self {
+        self.can_encrypt = Some(value);
+        self
+    }
+
+    pub fn can_authenticate(&mut self, value: bool) -> &mut Self {
+        self.can_authenticate = Some(value);
+        self
+    }
+
+    pub fn created_at(&mut self, value: Timestamp) -> &mut Self {
+        self.created_at = Some(value);
+        self
+    }
+
+    pub fn feature_seipd_v1(&mut self, value: bool) -> &mut Self {
+        self.feature_seipd_v1 = Some(value);
+        self
+    }
+
+    pub fn feature_seipd_v2(&mut self, value: bool) -> &mut Self {
+        self.feature_seipd_v2 = Some(value);
+        self
+    }
+
+    pub fn preferred_symmetric_algorithms(
+        &mut self,
+        value: SmallVec<[SymmetricKeyAlgorithm; 8]>,
+    ) -> &mut Self {
+        self.preferred_symmetric_algorithms = Some(value);
+        self
+    }
+
+    pub fn preferred_hash_algorithms(&mut self, value: SmallVec<[HashAlgorithm; 8]>) -> &mut Self {
+        self.preferred_hash_algorithms = Some(value);
+        self
+    }
+
+    pub fn preferred_compression_algorithms(
+        &mut self,
+        value: SmallVec<[CompressionAlgorithm; 8]>,
+    ) -> &mut Self {
+        self.preferred_compression_algorithms = Some(value);
+        self
+    }
+
+    pub fn preferred_aead_algorithms(
+        &mut self,
+        value: SmallVec<[(SymmetricKeyAlgorithm, AeadAlgorithm); 4]>,
+    ) -> &mut Self {
+        self.preferred_aead_algorithms = Some(value);
+        self
+    }
+
+    pub fn passphrase(&mut self, value: Option<String>) -> &mut Self {
+        self.passphrase = Some(value);
+        self
+    }
+
+    pub fn s2k(&mut self, value: Option<S2kParams>) -> &mut Self {
+        self.s2k = Some(value);
+        self
+    }
+
+    pub fn packet_version(&mut self, value: types::PacketHeaderVersion) -> &mut Self {
+        self.packet_version = Some(value);
+        self
+    }
+
+    pub fn user_ids(&mut self, value: Vec<String>) -> &mut Self {
+        self.user_ids = Some(value);
+        self
+    }
+
+    pub fn user_attributes(&mut self, value: Vec<UserAttribute>) -> &mut Self {
+        self.user_attributes = Some(value);
+        self
+    }
+
+    pub fn subkeys(&mut self, value: Vec<SubkeyParams>) -> &mut Self {
+        self.subkeys = Some(value);
+        self
+    }
+
+    /// Builds a new [`SecretKeyParams`].
+    pub fn build(&self) -> std::result::Result<SecretKeyParams, SecretKeyParamsBuilderError> {
+        self.validate()?;
+
+        let key_type = self
+            .key_type
+            .clone()
+            .ok_or(SecretKeyParamsBuilderError::UninitializedField("key_type"))?;
+
+        Ok(SecretKeyParams {
+            version: self.version.unwrap_or_default(),
+            key_type,
+            can_sign: self.can_sign.unwrap_or_default(),
+            can_certify: self.can_certify.unwrap_or_default(),
+            can_encrypt: self.can_encrypt.unwrap_or_default(),
+            can_authenticate: self.can_authenticate.unwrap_or_default(),
+            created_at: self.created_at.unwrap_or_else(Timestamp::now),
+            feature_seipd_v1: self.feature_seipd_v1.unwrap_or(true),
+            feature_seipd_v2: self.feature_seipd_v2.unwrap_or_default(),
+            preferred_symmetric_algorithms: self
+                .preferred_symmetric_algorithms
+                .clone()
+                .unwrap_or_default(),
+            preferred_hash_algorithms: self.preferred_hash_algorithms.clone().unwrap_or_default(),
+            preferred_compression_algorithms: self
+                .preferred_compression_algorithms
+                .clone()
+                .unwrap_or_default(),
+            preferred_aead_algorithms: self.preferred_aead_algorithms.clone().unwrap_or_default(),
+            passphrase: self.passphrase.clone().unwrap_or_default(),
+            s2k: self.s2k.clone().unwrap_or_default(),
+            packet_version: self.packet_version.unwrap_or_default(),
+            primary_user_id: self.primary_user_id.clone().unwrap_or_default(),
+            user_ids: self.user_ids.clone().unwrap_or_default(),
+            user_attributes: self.user_attributes.clone().unwrap_or_default(),
+            subkeys: self.subkeys.clone().unwrap_or_default(),
+        })
+    }
+}
+
 /// Parameters for the creation of a subkey
-#[derive(Debug, Clone, PartialEq, Eq, Builder)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SubkeyParams {
     // -- OpenPGP key version of this subkey
-    #[builder(default)]
     version: types::KeyVersion,
 
     // -- Asymmetric algorithm of this subkey
     key_type: KeyType,
 
     // -- Keyflags for this subkey
-    #[builder(default)]
     can_sign: bool,
-    #[builder(default)]
     can_encrypt: EncryptionCaps,
-    #[builder(default)]
     can_authenticate: bool,
 
     // -- Metadata for the primary key
-    #[builder(default = "Timestamp::now()")]
     created_at: Timestamp,
 
     // -- Password-locking of this subkey
-    #[builder(default)]
     passphrase: Option<String>,
-    #[builder(default)]
     s2k: Option<S2kParams>,
 
     // -- Packet framing for this subkey
-    #[builder(default)]
     packet_version: types::PacketHeaderVersion,
 }
+
+/// Builder for [`SubkeyParams`].
+#[derive(Clone, Default)]
+pub struct SubkeyParamsBuilder {
+    version: Option<types::KeyVersion>,
+    key_type: Option<KeyType>,
+    can_sign: Option<bool>,
+    can_encrypt: Option<EncryptionCaps>,
+    can_authenticate: Option<bool>,
+    created_at: Option<Timestamp>,
+    passphrase: Option<Option<String>>,
+    s2k: Option<Option<S2kParams>>,
+    packet_version: Option<types::PacketHeaderVersion>,
+}
+
+impl SubkeyParamsBuilder {
+    pub fn version(&mut self, value: types::KeyVersion) -> &mut Self {
+        self.version = Some(value);
+        self
+    }
+
+    pub fn key_type(&mut self, value: KeyType) -> &mut Self {
+        self.key_type = Some(value);
+        self
+    }
+
+    pub fn can_sign(&mut self, value: bool) -> &mut Self {
+        self.can_sign = Some(value);
+        self
+    }
+
+    pub fn can_encrypt(&mut self, value: EncryptionCaps) -> &mut Self {
+        self.can_encrypt = Some(value);
+        self
+    }
+
+    pub fn can_authenticate(&mut self, value: bool) -> &mut Self {
+        self.can_authenticate = Some(value);
+        self
+    }
+
+    pub fn created_at(&mut self, value: Timestamp) -> &mut Self {
+        self.created_at = Some(value);
+        self
+    }
+
+    pub fn passphrase(&mut self, value: Option<String>) -> &mut Self {
+        self.passphrase = Some(value);
+        self
+    }
+
+    pub fn s2k(&mut self, value: Option<S2kParams>) -> &mut Self {
+        self.s2k = Some(value);
+        self
+    }
+
+    pub fn packet_version(&mut self, value: types::PacketHeaderVersion) -> &mut Self {
+        self.packet_version = Some(value);
+        self
+    }
+
+    /// Builds a new [`SubkeyParams`].
+    pub fn build(&self) -> std::result::Result<SubkeyParams, SubkeyParamsBuilderError> {
+        let key_type = self
+            .key_type
+            .clone()
+            .ok_or(SubkeyParamsBuilderError::UninitializedField("key_type"))?;
+
+        Ok(SubkeyParams {
+            version: self.version.unwrap_or_default(),
+            key_type,
+            can_sign: self.can_sign.unwrap_or_default(),
+            can_encrypt: self.can_encrypt.unwrap_or_default(),
+            can_authenticate: self.can_authenticate.unwrap_or_default(),
+            created_at: self.created_at.unwrap_or_else(Timestamp::now),
+            passphrase: self.passphrase.clone().unwrap_or_default(),
+            s2k: self.s2k.clone().unwrap_or_default(),
+            packet_version: self.packet_version.unwrap_or_default(),
+        })
+    }
+}
+
+/// Error type for [`SecretKeyParamsBuilder`].
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum SecretKeyParamsBuilderError {
+    /// Uninitialized field
+    UninitializedField(&'static str),
+    /// Custom validation error
+    ValidationError(String),
+}
+
+impl From<String> for SecretKeyParamsBuilderError {
+    fn from(value: String) -> Self {
+        Self::ValidationError(value)
+    }
+}
+
+impl core::fmt::Display for SecretKeyParamsBuilderError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UninitializedField(field) => {
+                write!(f, "`{field}` must be initialized")
+            }
+            Self::ValidationError(error) => {
+                write!(f, "{error}")
+            }
+        }
+    }
+}
+
+impl StdError for SecretKeyParamsBuilderError {}
+
+/// Error type for [`SubkeyParamsBuilder`].
+#[non_exhaustive]
+#[derive(Debug)]
+pub enum SubkeyParamsBuilderError {
+    /// Uninitialized field
+    UninitializedField(&'static str),
+    /// Custom validation error
+    ValidationError(String),
+}
+
+impl From<String> for SubkeyParamsBuilderError {
+    fn from(value: String) -> Self {
+        Self::ValidationError(value)
+    }
+}
+
+impl core::fmt::Display for SubkeyParamsBuilderError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::UninitializedField(field) => {
+                write!(f, "`{field}` must be initialized")
+            }
+            Self::ValidationError(error) => {
+                write!(f, "{error}")
+            }
+        }
+    }
+}
+
+impl StdError for SubkeyParamsBuilderError {}
 
 impl SecretKeyParamsBuilder {
     fn validate_keytype(

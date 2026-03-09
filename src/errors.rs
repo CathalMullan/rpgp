@@ -5,6 +5,8 @@ use std::num::TryFromIntError;
 use ed25519_dalek::SignatureError;
 use snafu::{Backtrace, Snafu};
 
+use crate::composed::{SecretKeyParamsBuilderError, SubkeyParamsBuilderError};
+
 pub type Result<T, E = Error> = ::std::result::Result<T, E>;
 
 // custom nom error types
@@ -168,19 +170,28 @@ impl From<block_padding::UnpadError> for Error {
     }
 }
 
-impl From<String> for Error {
-    fn from(err: String) -> Error {
+impl From<SecretKeyParamsBuilderError> for Error {
+    fn from(err: SecretKeyParamsBuilderError) -> Error {
         Error::Message {
-            message: err,
+            message: err.to_string(),
             backtrace: Some(snafu::GenerateImplicitData::generate()),
         }
     }
 }
 
-impl From<derive_builder::UninitializedFieldError> for Error {
-    fn from(err: derive_builder::UninitializedFieldError) -> Error {
+impl From<SubkeyParamsBuilderError> for Error {
+    fn from(err: SubkeyParamsBuilderError) -> Error {
         Error::Message {
             message: err.to_string(),
+            backtrace: Some(snafu::GenerateImplicitData::generate()),
+        }
+    }
+}
+
+impl From<String> for Error {
+    fn from(err: String) -> Error {
+        Error::Message {
+            message: err,
             backtrace: Some(snafu::GenerateImplicitData::generate()),
         }
     }
