@@ -173,11 +173,10 @@ impl SecretKeyParamsBuilder {
             }
 
             match key_type {
-                KeyType::Rsa(size) => {
-                    if *size < 2048 {
-                        return Err("Keys with less than 2048bits are considered insecure".into());
-                    }
+                KeyType::Rsa(size) if *size < 2048 => {
+                    return Err("Keys with less than 2048bits are considered insecure".into());
                 }
+                KeyType::Rsa(_) => {}
                 KeyType::ECDSA(curve) => match curve {
                     ECCCurve::P256 | ECCCurve::P384 | ECCCurve::P521 | ECCCurve::Secp256k1 => {}
                     _ => return Err(format!("Curve {} is not supported for ECDSA", curve.name())),
