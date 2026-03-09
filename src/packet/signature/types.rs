@@ -3,7 +3,6 @@ use std::{
     io::{BufRead, Read},
 };
 
-use bitfields::bitfield;
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use bytes::Bytes;
 use digest::DynDigest;
@@ -1365,33 +1364,167 @@ impl Serialize for KeyFlags {
 /// Encodes the known fields of a [`KeyFlags`].
 ///
 /// Ref <https://www.rfc-editor.org/rfc/rfc9580.html#name-key-flags>
-#[bitfield(u16, order = lsb)]
-#[derive(PartialEq, Eq, Copy, Clone)]
-pub struct KnownKeyFlags {
-    #[bits(1)]
-    certify: bool,
-    #[bits(1)]
-    sign: bool,
-    #[bits(1)]
-    encrypt_comms: bool,
-    #[bits(1)]
-    encrypt_storage: bool,
-    #[bits(1)]
-    shared: bool,
-    #[bits(1)]
-    authentication: bool,
-    #[bits(1)]
-    draft_decrypt_forwarded: bool,
-    #[bits(1)]
-    group: bool,
-    #[bits(2)]
-    _padding1: u8,
-    #[bits(1)]
-    adsk: bool,
-    #[bits(1)]
-    timestamping: bool,
-    #[bits(4)]
-    _padding2: u8,
+#[repr(transparent)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+pub struct KnownKeyFlags(u16);
+
+impl KnownKeyFlags {
+    pub const fn from_bits(bits: u16) -> Self {
+        Self(bits)
+    }
+
+    pub const fn into_bits(self) -> u16 {
+        self.0
+    }
+
+    pub const fn certify(&self) -> bool {
+        self.0 & (1 << 0) != 0
+    }
+
+    pub fn set_certify(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 0;
+        } else {
+            self.0 &= !(1 << 0);
+        }
+    }
+
+    pub const fn sign(&self) -> bool {
+        self.0 & (1 << 1) != 0
+    }
+
+    pub fn set_sign(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 1;
+        } else {
+            self.0 &= !(1 << 1);
+        }
+    }
+
+    pub const fn encrypt_comms(&self) -> bool {
+        self.0 & (1 << 2) != 0
+    }
+
+    pub fn set_encrypt_comms(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 2;
+        } else {
+            self.0 &= !(1 << 2);
+        }
+    }
+
+    pub const fn encrypt_storage(&self) -> bool {
+        self.0 & (1 << 3) != 0
+    }
+
+    pub fn set_encrypt_storage(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 3;
+        } else {
+            self.0 &= !(1 << 3);
+        }
+    }
+
+    pub const fn shared(&self) -> bool {
+        self.0 & (1 << 4) != 0
+    }
+
+    pub fn set_shared(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 4;
+        } else {
+            self.0 &= !(1 << 4);
+        }
+    }
+
+    pub const fn authentication(&self) -> bool {
+        self.0 & (1 << 5) != 0
+    }
+
+    pub fn set_authentication(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 5;
+        } else {
+            self.0 &= !(1 << 5);
+        }
+    }
+
+    pub const fn draft_decrypt_forwarded(&self) -> bool {
+        self.0 & (1 << 6) != 0
+    }
+
+    pub fn set_draft_decrypt_forwarded(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 6;
+        } else {
+            self.0 &= !(1 << 6);
+        }
+    }
+
+    pub const fn group(&self) -> bool {
+        self.0 & (1 << 7) != 0
+    }
+
+    pub fn set_group(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 7;
+        } else {
+            self.0 &= !(1 << 7);
+        }
+    }
+
+    pub const fn adsk(&self) -> bool {
+        self.0 & (1 << 10) != 0
+    }
+
+    pub fn set_adsk(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 10;
+        } else {
+            self.0 &= !(1 << 10);
+        }
+    }
+
+    pub const fn timestamping(&self) -> bool {
+        self.0 & (1 << 11) != 0
+    }
+
+    pub fn set_timestamping(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 11;
+        } else {
+            self.0 &= !(1 << 11);
+        }
+    }
+}
+
+impl From<u16> for KnownKeyFlags {
+    fn from(bits: u16) -> Self {
+        Self(bits)
+    }
+}
+
+impl From<KnownKeyFlags> for u16 {
+    fn from(flags: KnownKeyFlags) -> u16 {
+        flags.0
+    }
+}
+
+impl core::fmt::Debug for KnownKeyFlags {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("KnownKeyFlags")
+            .field("certify", &self.certify())
+            .field("sign", &self.sign())
+            .field("encrypt_comms", &self.encrypt_comms())
+            .field("encrypt_storage", &self.encrypt_storage())
+            .field("shared", &self.shared())
+            .field("authentication", &self.authentication())
+            .field("draft_decrypt_forwarded", &self.draft_decrypt_forwarded())
+            .field("group", &self.group())
+            .field("adsk", &self.adsk())
+            .field("timestamping", &self.timestamping())
+            .finish()
+    }
 }
 
 /// Features signature subpacket.
@@ -1519,29 +1652,79 @@ impl Serialize for Features {
 /// Encodes the first byte of a [`Features`].
 ///
 /// Ref <https://www.rfc-editor.org/rfc/rfc9580.html#name-features>
-#[bitfield(u8)]
-#[derive(PartialEq, Eq, Copy, Clone)]
-pub struct KnownFeatures {
-    /// Support for "Version 1 Symmetrically Encrypted and Integrity Protected Data packet"
-    #[bits(1)]
-    seipd_v1: bool,
+#[repr(transparent)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+pub struct KnownFeatures(pub(crate) u8);
+
+impl KnownFeatures {
+    pub const fn from_bits(bits: u8) -> Self {
+        Self(bits)
+    }
+
+    pub const fn into_bits(self) -> u8 {
+        self.0
+    }
+
+    /// Support for "Version 1 Symmetrically Encrypted and Integrity Protected Data packet".
+    pub const fn seipd_v1(&self) -> bool {
+        self.0 & (1 << 0) != 0
+    }
+
+    pub fn set_seipd_v1(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 0;
+        } else {
+            self.0 &= !(1 << 0);
+        }
+    }
 
     /// Not standardized in OpenPGP, but used in the LibrePGP fork.
     /// Signals support for GnuPG-specific "OCB" encryption packet format.
-    #[bits(1)]
-    _libre_ocb: u8,
+    pub const fn libre_ocb(&self) -> bool {
+        self.0 & (1 << 1) != 0
+    }
 
     /// Not standardized in OpenPGP, but used in the LibrePGP fork.
     /// Semantics unclear.
-    #[bits(1)]
-    _libre_v5_keys: u8,
+    pub const fn libre_v5_keys(&self) -> bool {
+        self.0 & (1 << 2) != 0
+    }
 
-    /// Support for "Version 2 Symmetrically Encrypted and Integrity Protected Data packet"
-    #[bits(1)]
-    seipd_v2: bool,
+    /// Support for "Version 2 Symmetrically Encrypted and Integrity Protected Data packet".
+    pub const fn seipd_v2(&self) -> bool {
+        self.0 & (1 << 3) != 0
+    }
 
-    #[bits(4)]
-    _padding: u8,
+    pub fn set_seipd_v2(&mut self, value: bool) {
+        if value {
+            self.0 |= 1 << 3;
+        } else {
+            self.0 &= !(1 << 3);
+        }
+    }
+}
+
+impl From<u8> for KnownFeatures {
+    fn from(bits: u8) -> Self {
+        Self(bits)
+    }
+}
+
+impl From<KnownFeatures> for u8 {
+    fn from(features: KnownFeatures) -> u8 {
+        features.0
+    }
+}
+
+impl core::fmt::Debug for KnownFeatures {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("KnownFeatures")
+            .field("seipd_v1", &self.seipd_v1())
+            .field("libre_ocb", &self.libre_ocb())
+            .field("libre_v5_keys", &self.libre_v5_keys())
+            .field("seipd_v2", &self.seipd_v2())
+            .finish()
+    }
 }
 
 /// Notation Data signature subpacket

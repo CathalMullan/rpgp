@@ -1,6 +1,5 @@
 use std::io::BufRead;
 
-use bitfields::bitfield;
 use byteorder::{BigEndian, WriteBytesExt};
 use log::debug;
 
@@ -239,21 +238,60 @@ impl Serialize for PacketHeader {
 }
 
 /// Old format packet header ("Legacy format")
-#[bitfield(u8, order = msb, debug = false)]
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct OldPacketHeader {
-    /// First bit is always 1
-    #[bits(1, default = true)]
-    padding: bool,
-    /// Version: 0
-    #[bits(1, default = false)]
-    version: bool,
-    /// Packet Type ID
-    #[bits(4)]
-    tag: u8,
-    /// length-type
-    #[bits(2)]
-    length_type: u8,
+pub struct OldPacketHeader(u8);
+
+impl OldPacketHeader {
+    const PADDING_OFFSET: u32 = 7;
+    const VERSION_OFFSET: u32 = 6;
+    const TAG_OFFSET: u32 = 2;
+    const TAG_MASK: u8 = 0b0000_1111;
+    const LENGTH_TYPE_MASK: u8 = 0b0000_0011;
+
+    pub const fn from_bits(bits: u8) -> Self {
+        Self(bits)
+    }
+
+    pub const fn into_bits(self) -> u8 {
+        self.0
+    }
+
+    /// First bit is always 1.
+    pub const fn padding(&self) -> bool {
+        (self.0 >> Self::PADDING_OFFSET) & 1 != 0
+    }
+
+    /// Version: 0.
+    pub const fn version(&self) -> bool {
+        (self.0 >> Self::VERSION_OFFSET) & 1 != 0
+    }
+
+    /// Packet Type ID.
+    pub const fn tag(&self) -> u8 {
+        (self.0 >> Self::TAG_OFFSET) & Self::TAG_MASK
+    }
+
+    /// Length-type.
+    pub const fn length_type(&self) -> u8 {
+        self.0 & Self::LENGTH_TYPE_MASK
+    }
+
+    const fn set_tag(&mut self, value: u8) {
+        self.0 = (self.0 & !(Self::TAG_MASK << Self::TAG_OFFSET))
+            | ((value & Self::TAG_MASK) << Self::TAG_OFFSET);
+    }
+
+    const fn set_length_type(&mut self, value: u8) {
+        self.0 = (self.0 & !Self::LENGTH_TYPE_MASK) | (value & Self::LENGTH_TYPE_MASK);
+    }
+}
+
+impl Default for OldPacketHeader {
+    fn default() -> Self {
+        // padding=1, version=0
+        Self(0b1000_0000)
+    }
 }
 
 impl std::fmt::Debug for OldPacketHeader {
@@ -267,21 +305,87 @@ impl std::fmt::Debug for OldPacketHeader {
     }
 }
 
+pub struct OldPacketHeaderBuilder {
+    inner: OldPacketHeader,
+}
+
+impl OldPacketHeaderBuilder {
+    pub fn new() -> Self {
+        Self {
+            inner: OldPacketHeader::default(),
+        }
+    }
+
+    #[cfg(test)]
+    pub fn with_tag(mut self, value: u8) -> Self {
+        self.inner.set_tag(value);
+        self
+    }
+
+    pub fn checked_with_tag(mut self, value: u8) -> core::result::Result<Self, &'static str> {
+        if value > OldPacketHeader::TAG_MASK {
+            return Err("Value is too big to fit within the field bits.");
+        }
+
+        self.inner.set_tag(value);
+        Ok(self)
+    }
+
+    pub fn with_length_type(mut self, value: u8) -> Self {
+        self.inner.set_length_type(value);
+        self
+    }
+
+    pub fn build(self) -> OldPacketHeader {
+        self.inner
+    }
+}
+
 /// Parses a new format packet header ("OpenPGP format")
 ///
 /// Ref: <https://www.rfc-editor.org/rfc/rfc9580.html#name-packet-headers>
-#[bitfield(u8, order = msb, debug = false)]
+#[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub struct NewPacketHeader {
-    /// First bit is always 1
-    #[bits(1, default = true)]
-    padding: bool,
-    /// Version: 1
-    #[bits(1, default = true)]
-    version: bool,
-    /// Packet Type ID
-    #[bits(6)]
-    tag: u8,
+pub struct NewPacketHeader(u8);
+
+impl NewPacketHeader {
+    const PADDING_OFFSET: u32 = 7;
+    const VERSION_OFFSET: u32 = 6;
+    const TAG_MASK: u8 = 0b0011_1111;
+
+    pub const fn from_bits(bits: u8) -> Self {
+        Self(bits)
+    }
+
+    pub const fn into_bits(self) -> u8 {
+        self.0
+    }
+
+    /// First bit is always 1.
+    pub const fn padding(&self) -> bool {
+        (self.0 >> Self::PADDING_OFFSET) & 1 != 0
+    }
+
+    /// Version: 1.
+    pub const fn version(&self) -> bool {
+        (self.0 >> Self::VERSION_OFFSET) & 1 != 0
+    }
+
+    /// Packet Type ID.
+    pub const fn tag(&self) -> u8 {
+        self.0 & Self::TAG_MASK
+    }
+
+    const fn set_tag(&mut self, value: u8) {
+        self.0 = (self.0 & !Self::TAG_MASK) | (value & Self::TAG_MASK);
+    }
+}
+
+impl Default for NewPacketHeader {
+    fn default() -> Self {
+        // padding=1, version=1
+        Self(0b1100_0000)
+    }
 }
 
 impl std::fmt::Debug for NewPacketHeader {
@@ -291,6 +395,27 @@ impl std::fmt::Debug for NewPacketHeader {
             .field("version", &(self.version() as u8))
             .field("tag", &(Tag::from(self.tag())))
             .finish()
+    }
+}
+
+pub struct NewPacketHeaderBuilder {
+    inner: NewPacketHeader,
+}
+
+impl NewPacketHeaderBuilder {
+    pub fn new() -> Self {
+        Self {
+            inner: NewPacketHeader::default(),
+        }
+    }
+
+    pub fn with_tag(mut self, value: u8) -> Self {
+        self.inner.set_tag(value);
+        self
+    }
+
+    pub fn build(self) -> NewPacketHeader {
+        self.inner
     }
 }
 
