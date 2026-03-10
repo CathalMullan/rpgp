@@ -10,7 +10,7 @@ use cipher::{BlockCipher, BlockDecrypt, BlockEncryptMut};
 use des::TdesEde3;
 use idea::Idea;
 use log::debug;
-use num_enum::{FromPrimitive, IntoPrimitive};
+
 use rand::{CryptoRng, Rng};
 use twofish::Twofish;
 
@@ -101,7 +101,7 @@ where
 
 /// Available symmetric key algorithms.
 /// Ref: <https://www.rfc-editor.org/rfc/rfc9580.html#name-symmetric-key-algorithms>
-#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 #[non_exhaustive]
@@ -134,8 +134,49 @@ pub enum SymmetricKeyAlgorithm {
     Camellia256 = 13,
     Private10 = 110,
 
-    #[num_enum(catch_all)]
     Other(#[cfg_attr(test, proptest(strategy = "111u8.."))] u8),
+}
+
+impl From<u8> for SymmetricKeyAlgorithm {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::Plaintext,
+            1 => Self::IDEA,
+            2 => Self::TripleDES,
+            3 => Self::CAST5,
+            4 => Self::Blowfish,
+            7 => Self::AES128,
+            8 => Self::AES192,
+            9 => Self::AES256,
+            10 => Self::Twofish,
+            11 => Self::Camellia128,
+            12 => Self::Camellia192,
+            13 => Self::Camellia256,
+            110 => Self::Private10,
+            other => Self::Other(other),
+        }
+    }
+}
+
+impl From<SymmetricKeyAlgorithm> for u8 {
+    fn from(value: SymmetricKeyAlgorithm) -> Self {
+        match value {
+            SymmetricKeyAlgorithm::Plaintext => 0,
+            SymmetricKeyAlgorithm::IDEA => 1,
+            SymmetricKeyAlgorithm::TripleDES => 2,
+            SymmetricKeyAlgorithm::CAST5 => 3,
+            SymmetricKeyAlgorithm::Blowfish => 4,
+            SymmetricKeyAlgorithm::AES128 => 7,
+            SymmetricKeyAlgorithm::AES192 => 8,
+            SymmetricKeyAlgorithm::AES256 => 9,
+            SymmetricKeyAlgorithm::Twofish => 10,
+            SymmetricKeyAlgorithm::Camellia128 => 11,
+            SymmetricKeyAlgorithm::Camellia192 => 12,
+            SymmetricKeyAlgorithm::Camellia256 => 13,
+            SymmetricKeyAlgorithm::Private10 => 110,
+            SymmetricKeyAlgorithm::Other(other) => other,
+        }
+    }
 }
 
 #[allow(clippy::derivable_impls)]

@@ -4,7 +4,6 @@ use std::str::FromStr;
 
 use digest::{Digest, DynDigest};
 use md5::Md5;
-use num_enum::{FromPrimitive, IntoPrimitive};
 use ripemd::Ripemd160;
 use sha1_checked::{CollisionResult, Sha1};
 
@@ -12,7 +11,7 @@ use super::checksum::Sha1HashCollision;
 
 /// Available hash algorithms.
 /// Ref: <https://www.rfc-editor.org/rfc/rfc9580.html#name-hash-algorithms>
-#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive, Hash)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Hash)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 #[non_exhaustive]
@@ -33,8 +32,45 @@ pub enum HashAlgorithm {
     /// Do not use, just for compatibility with GnuPG.
     Private10 = 110,
 
-    #[num_enum(catch_all)]
     Other(#[cfg_attr(test, proptest(strategy = "111u8.."))] u8),
+}
+
+impl From<u8> for HashAlgorithm {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Md5,
+            2 => Self::Sha1,
+            3 => Self::Ripemd160,
+            8 => Self::Sha256,
+            9 => Self::Sha384,
+            10 => Self::Sha512,
+            11 => Self::Sha224,
+            12 => Self::Sha3_256,
+            14 => Self::Sha3_512,
+            110 => Self::Private10,
+            other => Self::Other(other),
+        }
+    }
+}
+
+impl From<HashAlgorithm> for u8 {
+    fn from(value: HashAlgorithm) -> Self {
+        match value {
+            HashAlgorithm::None => 0,
+            HashAlgorithm::Md5 => 1,
+            HashAlgorithm::Sha1 => 2,
+            HashAlgorithm::Ripemd160 => 3,
+            HashAlgorithm::Sha256 => 8,
+            HashAlgorithm::Sha384 => 9,
+            HashAlgorithm::Sha512 => 10,
+            HashAlgorithm::Sha224 => 11,
+            HashAlgorithm::Sha3_256 => 12,
+            HashAlgorithm::Sha3_512 => 14,
+            HashAlgorithm::Private10 => 110,
+            HashAlgorithm::Other(other) => other,
+        }
+    }
 }
 
 impl fmt::Display for HashAlgorithm {

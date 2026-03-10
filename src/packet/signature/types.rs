@@ -8,7 +8,6 @@ use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
 use bytes::Bytes;
 use digest::DynDigest;
 use log::debug;
-use num_enum::{FromPrimitive, IntoPrimitive};
 
 use crate::{
     crypto::{
@@ -1065,7 +1064,7 @@ impl Signature {
 }
 
 /// The version of a [`Signature`] packet
-#[derive(PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
+#[derive(PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum SignatureVersion {
     /// Deprecated
@@ -1075,8 +1074,33 @@ pub enum SignatureVersion {
     V5 = 5,
     V6 = 6,
 
-    #[num_enum(catch_all)]
     Other(u8),
+}
+
+impl From<u8> for SignatureVersion {
+    fn from(value: u8) -> Self {
+        match value {
+            2 => SignatureVersion::V2,
+            3 => SignatureVersion::V3,
+            4 => SignatureVersion::V4,
+            5 => SignatureVersion::V5,
+            6 => SignatureVersion::V6,
+            other => SignatureVersion::Other(other),
+        }
+    }
+}
+
+impl From<SignatureVersion> for u8 {
+    fn from(value: SignatureVersion) -> Self {
+        match value {
+            SignatureVersion::V2 => 2,
+            SignatureVersion::V3 => 3,
+            SignatureVersion::V4 => 4,
+            SignatureVersion::V5 => 5,
+            SignatureVersion::V6 => 6,
+            SignatureVersion::Other(other) => other,
+        }
+    }
 }
 
 impl fmt::Debug for SignatureVersion {
@@ -1113,7 +1137,7 @@ impl Default for SignatureVersion {
 /// various certificate metadata such as expiration/revocation status, and algorithm preferences.
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-signature-types>
-#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 pub enum SignatureType {
@@ -1210,8 +1234,53 @@ pub enum SignatureType {
     /// document) that cannot include a target subpacket.
     ThirdParty = 0x50,
 
-    #[num_enum(catch_all)]
     Other(#[cfg_attr(test, proptest(strategy = "0x51u8.."))] u8),
+}
+
+impl From<u8> for SignatureType {
+    fn from(value: u8) -> Self {
+        match value {
+            0x00 => SignatureType::Binary,
+            0x01 => SignatureType::Text,
+            0x02 => SignatureType::Standalone,
+            0x10 => SignatureType::CertGeneric,
+            0x11 => SignatureType::CertPersona,
+            0x12 => SignatureType::CertCasual,
+            0x13 => SignatureType::CertPositive,
+            0x18 => SignatureType::SubkeyBinding,
+            0x19 => SignatureType::KeyBinding,
+            0x1F => SignatureType::Key,
+            0x20 => SignatureType::KeyRevocation,
+            0x28 => SignatureType::SubkeyRevocation,
+            0x30 => SignatureType::CertRevocation,
+            0x40 => SignatureType::Timestamp,
+            0x50 => SignatureType::ThirdParty,
+            other => SignatureType::Other(other),
+        }
+    }
+}
+
+impl From<SignatureType> for u8 {
+    fn from(value: SignatureType) -> Self {
+        match value {
+            SignatureType::Binary => 0x00,
+            SignatureType::Text => 0x01,
+            SignatureType::Standalone => 0x02,
+            SignatureType::CertGeneric => 0x10,
+            SignatureType::CertPersona => 0x11,
+            SignatureType::CertCasual => 0x12,
+            SignatureType::CertPositive => 0x13,
+            SignatureType::SubkeyBinding => 0x18,
+            SignatureType::KeyBinding => 0x19,
+            SignatureType::Key => 0x1F,
+            SignatureType::KeyRevocation => 0x20,
+            SignatureType::SubkeyRevocation => 0x28,
+            SignatureType::CertRevocation => 0x30,
+            SignatureType::Timestamp => 0x40,
+            SignatureType::ThirdParty => 0x50,
+            SignatureType::Other(other) => other,
+        }
+    }
 }
 
 pub const CERTIFICATION_SIGNATURE_TYPES: &[SignatureType] = &[
@@ -1787,7 +1856,7 @@ pub struct Notation {
 /// Value of a [`SubpacketData::RevocationReason`] signature subpacket
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-reason-for-revocation>
-#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 pub enum RevocationCode {
     /// No reason specified (key revocations or cert revocations)
@@ -1815,8 +1884,55 @@ pub enum RevocationCode {
     Private110 = 110,
 
     /// Undefined code
-    #[num_enum(catch_all)]
     Other(u8),
+}
+
+impl From<u8> for RevocationCode {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => RevocationCode::NoReason,
+            1 => RevocationCode::KeySuperseded,
+            2 => RevocationCode::KeyCompromised,
+            3 => RevocationCode::KeyRetired,
+            32 => RevocationCode::CertUserIdInvalid,
+            100 => RevocationCode::Private100,
+            101 => RevocationCode::Private101,
+            102 => RevocationCode::Private102,
+            103 => RevocationCode::Private103,
+            104 => RevocationCode::Private104,
+            105 => RevocationCode::Private105,
+            106 => RevocationCode::Private106,
+            107 => RevocationCode::Private107,
+            108 => RevocationCode::Private108,
+            109 => RevocationCode::Private109,
+            110 => RevocationCode::Private110,
+            other => RevocationCode::Other(other),
+        }
+    }
+}
+
+impl From<RevocationCode> for u8 {
+    fn from(value: RevocationCode) -> Self {
+        match value {
+            RevocationCode::NoReason => 0,
+            RevocationCode::KeySuperseded => 1,
+            RevocationCode::KeyCompromised => 2,
+            RevocationCode::KeyRetired => 3,
+            RevocationCode::CertUserIdInvalid => 32,
+            RevocationCode::Private100 => 100,
+            RevocationCode::Private101 => 101,
+            RevocationCode::Private102 => 102,
+            RevocationCode::Private103 => 103,
+            RevocationCode::Private104 => 104,
+            RevocationCode::Private105 => 105,
+            RevocationCode::Private106 => 106,
+            RevocationCode::Private107 => 107,
+            RevocationCode::Private108 => 108,
+            RevocationCode::Private109 => 109,
+            RevocationCode::Private110 => 110,
+            RevocationCode::Other(other) => other,
+        }
+    }
 }
 
 impl PacketTrait for Signature {

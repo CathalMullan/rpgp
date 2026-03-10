@@ -1,8 +1,8 @@
+use std::fmt;
 use std::io::{self, BufRead};
 
 use byteorder::{BigEndian, WriteBytesExt};
 use log::debug;
-use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
 
 use crate::{errors::Result, parsing_reader::BufReadParsing};
 
@@ -320,6 +320,18 @@ impl Tag {
     }
 }
 
+/// Error returned when converting from `u8` to [`PacketHeaderVersion`] with an invalid value.
+#[derive(Debug)]
+pub struct InvalidPacketHeaderVersion;
+
+impl fmt::Display for InvalidPacketHeaderVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("invalid packet header version")
+    }
+}
+
+impl std::error::Error for InvalidPacketHeaderVersion {}
+
 /// The version of the packet format.
 ///
 /// There are two packet formats
@@ -329,7 +341,7 @@ impl Tag {
 ///    predecessors RFC 4880 and RFC 2440 and
 ///
 /// 2) the Legacy packet format as used by implementations predating any IETF specification of OpenPGP.
-#[derive(Debug, PartialEq, Eq, Clone, Copy, TryFromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 #[derive(Default)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
@@ -339,6 +351,24 @@ pub enum PacketHeaderVersion {
     /// New Packet Format ("OpenPGP packet format")
     #[default]
     New = 1,
+}
+
+impl TryFrom<u8> for PacketHeaderVersion {
+    type Error = InvalidPacketHeaderVersion;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(PacketHeaderVersion::Old),
+            1 => Ok(PacketHeaderVersion::New),
+            _ => Err(InvalidPacketHeaderVersion),
+        }
+    }
+}
+
+impl From<PacketHeaderVersion> for u8 {
+    fn from(value: PacketHeaderVersion) -> Self {
+        value as u8
+    }
 }
 
 impl PacketHeaderVersion {
@@ -408,7 +438,7 @@ impl PacketHeaderVersion {
 
 /// The version of a key packet
 // TODO: find a better place for this
-#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 pub enum KeyVersion {
@@ -419,9 +449,34 @@ pub enum KeyVersion {
     V5 = 5,
     V6 = 6,
 
-    #[num_enum(catch_all)]
     #[cfg_attr(test, proptest(skip))]
     Other(u8),
+}
+
+impl From<u8> for KeyVersion {
+    fn from(value: u8) -> Self {
+        match value {
+            2 => KeyVersion::V2,
+            3 => KeyVersion::V3,
+            4 => KeyVersion::V4,
+            5 => KeyVersion::V5,
+            6 => KeyVersion::V6,
+            other => KeyVersion::Other(other),
+        }
+    }
+}
+
+impl From<KeyVersion> for u8 {
+    fn from(value: KeyVersion) -> Self {
+        match value {
+            KeyVersion::V2 => 2,
+            KeyVersion::V3 => 3,
+            KeyVersion::V4 => 4,
+            KeyVersion::V5 => 5,
+            KeyVersion::V6 => 6,
+            KeyVersion::Other(other) => other,
+        }
+    }
 }
 
 impl KeyVersion {
@@ -445,18 +500,37 @@ impl Default for KeyVersion {
 }
 
 /// Version of a [PKESK](crate::packet::PublicKeyEncryptedSessionKey) packet
-#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum PkeskVersion {
     V3 = 3,
     V6 = 6,
 
-    #[num_enum(catch_all)]
     Other(u8),
 }
 
+impl From<u8> for PkeskVersion {
+    fn from(value: u8) -> Self {
+        match value {
+            3 => PkeskVersion::V3,
+            6 => PkeskVersion::V6,
+            other => PkeskVersion::Other(other),
+        }
+    }
+}
+
+impl From<PkeskVersion> for u8 {
+    fn from(value: PkeskVersion) -> Self {
+        match value {
+            PkeskVersion::V3 => 3,
+            PkeskVersion::V6 => 6,
+            PkeskVersion::Other(other) => other,
+        }
+    }
+}
+
 /// The version of an [SKESK](crate::packet::SymKeyEncryptedSessionKey) packet
-#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[repr(u8)]
 pub enum SkeskVersion {
     /// SKESK v4 is the default mechanism for symmetric-key encryption of a session key in
@@ -475,8 +549,29 @@ pub enum SkeskVersion {
     /// <https://www.rfc-editor.org/rfc/rfc9580.html#name-version-6-symmetric-key-enc>
     V6 = 6,
 
-    #[num_enum(catch_all)]
     Other(u8),
+}
+
+impl From<u8> for SkeskVersion {
+    fn from(value: u8) -> Self {
+        match value {
+            4 => SkeskVersion::V4,
+            5 => SkeskVersion::V5,
+            6 => SkeskVersion::V6,
+            other => SkeskVersion::Other(other),
+        }
+    }
+}
+
+impl From<SkeskVersion> for u8 {
+    fn from(value: SkeskVersion) -> Self {
+        match value {
+            SkeskVersion::V4 => 4,
+            SkeskVersion::V5 => 5,
+            SkeskVersion::V6 => 6,
+            SkeskVersion::Other(other) => other,
+        }
+    }
 }
 
 #[cfg(test)]

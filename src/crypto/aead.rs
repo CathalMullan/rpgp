@@ -12,7 +12,7 @@ use generic_array::{
     typenum::{U15, U16},
     GenericArray,
 };
-use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
+
 use ocb3::{Nonce as Ocb3Nonce, Ocb3};
 use sha2::Sha256;
 
@@ -119,7 +119,7 @@ impl EncryptSnafu {
 }
 
 /// Available AEAD algorithms.
-#[derive(Debug, PartialEq, Eq, Copy, Clone, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 #[non_exhaustive]
@@ -142,8 +142,53 @@ pub enum AeadAlgorithm {
     Private109 = 109,
     Private110 = 110,
 
-    #[num_enum(catch_all)]
     Other(#[cfg_attr(test, proptest(strategy = "111u8.."))] u8),
+}
+
+impl From<u8> for AeadAlgorithm {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => Self::None,
+            1 => Self::Eax,
+            2 => Self::Ocb,
+            3 => Self::Gcm,
+            100 => Self::Private100,
+            101 => Self::Private101,
+            102 => Self::Private102,
+            103 => Self::Private103,
+            104 => Self::Private104,
+            105 => Self::Private105,
+            106 => Self::Private106,
+            107 => Self::Private107,
+            108 => Self::Private108,
+            109 => Self::Private109,
+            110 => Self::Private110,
+            other => Self::Other(other),
+        }
+    }
+}
+
+impl From<AeadAlgorithm> for u8 {
+    fn from(value: AeadAlgorithm) -> Self {
+        match value {
+            AeadAlgorithm::None => 0,
+            AeadAlgorithm::Eax => 1,
+            AeadAlgorithm::Ocb => 2,
+            AeadAlgorithm::Gcm => 3,
+            AeadAlgorithm::Private100 => 100,
+            AeadAlgorithm::Private101 => 101,
+            AeadAlgorithm::Private102 => 102,
+            AeadAlgorithm::Private103 => 103,
+            AeadAlgorithm::Private104 => 104,
+            AeadAlgorithm::Private105 => 105,
+            AeadAlgorithm::Private106 => 106,
+            AeadAlgorithm::Private107 => 107,
+            AeadAlgorithm::Private108 => 108,
+            AeadAlgorithm::Private109 => 109,
+            AeadAlgorithm::Private110 => 110,
+            AeadAlgorithm::Other(other) => other,
+        }
+    }
 }
 
 impl AeadAlgorithm {
@@ -353,13 +398,23 @@ pub(crate) fn aead_setup_rfc9580(
     (info, message_key, nonce)
 }
 
+/// Error returned when converting a `u8` to [`ChunkSize`] fails.
+#[derive(Debug)]
+pub struct InvalidChunkSize;
+
+impl fmt::Display for InvalidChunkSize {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("invalid chunk size")
+    }
+}
+
+impl std::error::Error for InvalidChunkSize {}
+
 /// Allowed chunk sizes.
 /// The range is from 64B to 4 MiB.
 ///
 /// Ref <https://www.rfc-editor.org/rfc/rfc9580.html#name-version-2-symmetrically-enc>
-#[derive(
-    Default, IntoPrimitive, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone, TryFromPrimitive,
-)]
+#[derive(Default, Debug, PartialEq, Eq, PartialOrd, Ord, Copy, Clone)]
 #[repr(u8)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum ChunkSize {
@@ -381,6 +436,39 @@ pub enum ChunkSize {
     C1MiB = 14,
     C2MiB = 15,
     C4MiB = 16,
+}
+
+impl From<ChunkSize> for u8 {
+    fn from(value: ChunkSize) -> Self {
+        value as u8
+    }
+}
+
+impl TryFrom<u8> for ChunkSize {
+    type Error = InvalidChunkSize;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(Self::C64B),
+            1 => Ok(Self::C128B),
+            2 => Ok(Self::C256B),
+            3 => Ok(Self::C512B),
+            4 => Ok(Self::C1KiB),
+            5 => Ok(Self::C2KiB),
+            6 => Ok(Self::C4KiB),
+            7 => Ok(Self::C8KiB),
+            8 => Ok(Self::C16KiB),
+            9 => Ok(Self::C32KiB),
+            10 => Ok(Self::C64KiB),
+            11 => Ok(Self::C128KiB),
+            12 => Ok(Self::C256KiB),
+            13 => Ok(Self::C512KiB),
+            14 => Ok(Self::C1MiB),
+            15 => Ok(Self::C2MiB),
+            16 => Ok(Self::C4MiB),
+            _ => Err(InvalidChunkSize),
+        }
+    }
 }
 
 impl ChunkSize {

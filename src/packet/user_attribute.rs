@@ -3,7 +3,6 @@ use std::io::{self, BufRead};
 
 use byteorder::{LittleEndian, WriteBytesExt};
 use bytes::Bytes;
-use num_enum::{FromPrimitive, IntoPrimitive};
 use rand::{CryptoRng, Rng};
 
 use crate::{
@@ -18,13 +17,30 @@ use crate::{
 };
 
 /// The type of a user attribute. Only `Image` is a known type currently
-#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 pub enum UserAttributeType {
     Image = 0x01,
-    #[num_enum(catch_all)]
     Unknown(#[cfg_attr(test, proptest(filter = "|i| *i != 1"))] u8),
+}
+
+impl From<u8> for UserAttributeType {
+    fn from(value: u8) -> Self {
+        match value {
+            0x01 => UserAttributeType::Image,
+            other => UserAttributeType::Unknown(other),
+        }
+    }
+}
+
+impl From<UserAttributeType> for u8 {
+    fn from(value: UserAttributeType) -> Self {
+        match value {
+            UserAttributeType::Image => 0x01,
+            UserAttributeType::Unknown(other) => other,
+        }
+    }
 }
 
 impl fmt::Display for UserAttributeType {

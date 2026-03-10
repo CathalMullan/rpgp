@@ -1,6 +1,4 @@
-use num_enum::{FromPrimitive, IntoPrimitive};
-
-#[derive(Debug, PartialEq, Eq, Clone, Copy, FromPrimitive, IntoPrimitive)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 #[repr(u8)]
 #[non_exhaustive]
@@ -85,9 +83,102 @@ pub enum PublicKeyAlgorithm {
     #[cfg_attr(test, proptest(skip))]
     Private110 = 110,
 
-    #[num_enum(catch_all)]
     #[cfg_attr(test, proptest(skip))]
     Unknown(u8),
+}
+
+impl From<u8> for PublicKeyAlgorithm {
+    fn from(value: u8) -> Self {
+        match value {
+            1 => Self::RSA,
+            2 => Self::RSAEncrypt,
+            3 => Self::RSASign,
+            16 => Self::ElgamalEncrypt,
+            17 => Self::DSA,
+            18 => Self::ECDH,
+            19 => Self::ECDSA,
+            20 => Self::Elgamal,
+            21 => Self::DiffieHellman,
+            22 => Self::EdDSALegacy,
+            25 => Self::X25519,
+            26 => Self::X448,
+            27 => Self::Ed25519,
+            28 => Self::Ed448,
+            #[cfg(feature = "draft-pqc")]
+            30 => Self::MlDsa65Ed25519,
+            #[cfg(feature = "draft-pqc")]
+            31 => Self::MlDsa87Ed448,
+            #[cfg(feature = "draft-pqc")]
+            32 => Self::SlhDsaShake128s,
+            #[cfg(feature = "draft-pqc")]
+            33 => Self::SlhDsaShake128f,
+            #[cfg(feature = "draft-pqc")]
+            34 => Self::SlhDsaShake256s,
+            #[cfg(feature = "draft-pqc")]
+            35 => Self::MlKem768X25519,
+            #[cfg(feature = "draft-pqc")]
+            36 => Self::MlKem1024X448,
+            100 => Self::Private100,
+            101 => Self::Private101,
+            102 => Self::Private102,
+            103 => Self::Private103,
+            104 => Self::Private104,
+            105 => Self::Private105,
+            106 => Self::Private106,
+            107 => Self::Private107,
+            108 => Self::Private108,
+            109 => Self::Private109,
+            110 => Self::Private110,
+            other => Self::Unknown(other),
+        }
+    }
+}
+
+impl From<PublicKeyAlgorithm> for u8 {
+    fn from(value: PublicKeyAlgorithm) -> Self {
+        match value {
+            PublicKeyAlgorithm::RSA => 1,
+            PublicKeyAlgorithm::RSAEncrypt => 2,
+            PublicKeyAlgorithm::RSASign => 3,
+            PublicKeyAlgorithm::ElgamalEncrypt => 16,
+            PublicKeyAlgorithm::DSA => 17,
+            PublicKeyAlgorithm::ECDH => 18,
+            PublicKeyAlgorithm::ECDSA => 19,
+            PublicKeyAlgorithm::Elgamal => 20,
+            PublicKeyAlgorithm::DiffieHellman => 21,
+            PublicKeyAlgorithm::EdDSALegacy => 22,
+            PublicKeyAlgorithm::X25519 => 25,
+            PublicKeyAlgorithm::X448 => 26,
+            PublicKeyAlgorithm::Ed25519 => 27,
+            PublicKeyAlgorithm::Ed448 => 28,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::MlDsa65Ed25519 => 30,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::MlDsa87Ed448 => 31,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::SlhDsaShake128s => 32,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::SlhDsaShake128f => 33,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::SlhDsaShake256s => 34,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::MlKem768X25519 => 35,
+            #[cfg(feature = "draft-pqc")]
+            PublicKeyAlgorithm::MlKem1024X448 => 36,
+            PublicKeyAlgorithm::Private100 => 100,
+            PublicKeyAlgorithm::Private101 => 101,
+            PublicKeyAlgorithm::Private102 => 102,
+            PublicKeyAlgorithm::Private103 => 103,
+            PublicKeyAlgorithm::Private104 => 104,
+            PublicKeyAlgorithm::Private105 => 105,
+            PublicKeyAlgorithm::Private106 => 106,
+            PublicKeyAlgorithm::Private107 => 107,
+            PublicKeyAlgorithm::Private108 => 108,
+            PublicKeyAlgorithm::Private109 => 109,
+            PublicKeyAlgorithm::Private110 => 110,
+            PublicKeyAlgorithm::Unknown(other) => other,
+        }
+    }
 }
 
 impl PublicKeyAlgorithm {

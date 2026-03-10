@@ -1,6 +1,5 @@
 use std::fmt;
 
-use num_enum::TryFromPrimitive;
 use smallvec::SmallVec;
 
 use crate::crypto::public_key::PublicKeyAlgorithm;
@@ -31,12 +30,36 @@ impl fmt::Debug for RevocationKey {
     }
 }
 
+/// Error returned when converting from `u8` to [`RevocationKeyClass`] with an invalid value.
+#[derive(Debug)]
+pub struct InvalidRevocationKeyClass;
+
+impl fmt::Display for InvalidRevocationKeyClass {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("invalid revocation key class")
+    }
+}
+
+impl std::error::Error for InvalidRevocationKeyClass {}
+
 /// "Class" setting for a [`RevocationKey`] subpacket (deprecated)
-#[derive(Debug, PartialEq, Eq, Copy, Clone, TryFromPrimitive)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[repr(u8)]
 pub enum RevocationKeyClass {
     Default = 0x80,
     Sensitive = 0x80 | 0x40,
+}
+
+impl TryFrom<u8> for RevocationKeyClass {
+    type Error = InvalidRevocationKeyClass;
+
+    fn try_from(value: u8) -> Result<Self, Self::Error> {
+        match value {
+            0x80 => Ok(RevocationKeyClass::Default),
+            0xC0 => Ok(RevocationKeyClass::Sensitive),
+            _ => Err(InvalidRevocationKeyClass),
+        }
+    }
 }
 
 impl RevocationKey {

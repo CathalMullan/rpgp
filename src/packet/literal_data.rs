@@ -4,7 +4,6 @@ use std::io::{self, BufRead};
 use byteorder::WriteBytesExt;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use log::debug;
-use num_enum::{FromPrimitive, IntoPrimitive};
 #[cfg(test)]
 use proptest::prelude::*;
 
@@ -120,7 +119,7 @@ impl LiteralDataHeader {
 /// Specifies what type of data is contained in a [`LiteralData`] packet.
 ///
 /// Also see <https://www.rfc-editor.org/rfc/rfc9580.html#name-literal-data-packet-type-id>
-#[derive(Debug, Copy, Clone, FromPrimitive, IntoPrimitive, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum DataMode {
@@ -130,9 +129,32 @@ pub enum DataMode {
     Utf8 = b'u',
     Mime = b'm',
 
-    #[num_enum(catch_all)]
     #[cfg_attr(test, proptest(skip))]
     Other(u8),
+}
+
+impl From<u8> for DataMode {
+    fn from(value: u8) -> Self {
+        match value {
+            b'b' => DataMode::Binary,
+            b't' => DataMode::Text,
+            b'u' => DataMode::Utf8,
+            b'm' => DataMode::Mime,
+            other => DataMode::Other(other),
+        }
+    }
+}
+
+impl From<DataMode> for u8 {
+    fn from(value: DataMode) -> Self {
+        match value {
+            DataMode::Binary => b'b',
+            DataMode::Text => b't',
+            DataMode::Utf8 => b'u',
+            DataMode::Mime => b'm',
+            DataMode::Other(other) => other,
+        }
+    }
 }
 
 impl LiteralData {
