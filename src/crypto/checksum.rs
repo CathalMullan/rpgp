@@ -1,17 +1,39 @@
-use std::{hash::Hasher, io};
+use std::{error::Error, fmt, hash::Hasher, io};
 
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
-use snafu::Snafu;
 
-#[derive(Debug, Snafu)]
-#[snafu(display(
-    "checksum mismatch 0x{} != 0x{}",
-    hex::encode(expected),
-    hex::encode(actual)
-))]
+#[derive(Debug)]
 pub struct ChecksumMismatch {
     expected: [u8; 2],
     actual: [u8; 2],
+}
+
+impl fmt::Display for ChecksumMismatch {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "checksum mismatch 0x{} != 0x{}",
+            hex::encode(self.expected),
+            hex::encode(self.actual),
+        )
+    }
+}
+
+impl Error for ChecksumMismatch {}
+
+pub(crate) struct ChecksumMismatchSnafu {
+    pub(crate) expected: [u8; 2],
+    pub(crate) actual: [u8; 2],
+}
+
+impl ChecksumMismatchSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> ChecksumMismatch {
+        ChecksumMismatch {
+            expected: self.expected,
+            actual: self.actual,
+        }
+    }
 }
 
 /// Two octet checksum: sum of all octets mod 65535.
@@ -85,9 +107,25 @@ impl Hasher for SimpleChecksum {
     }
 }
 
-#[derive(Debug, Snafu)]
-#[snafu(display("SHA1 hash collision occurred"), visibility(pub(super)))]
+#[derive(Debug)]
 pub struct Sha1HashCollision;
+
+impl fmt::Display for Sha1HashCollision {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("SHA1 hash collision occurred")
+    }
+}
+
+impl Error for Sha1HashCollision {}
+
+pub(super) struct Sha1HashCollisionSnafu;
+
+impl Sha1HashCollisionSnafu {
+    #[must_use]
+    pub(super) fn build(self) -> Sha1HashCollision {
+        Sha1HashCollision
+    }
+}
 
 /// SHA1 checksum, using sha1_checked, first 20 octets.
 ///

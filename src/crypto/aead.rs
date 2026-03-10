@@ -1,3 +1,6 @@
+use std::error::Error as StdError;
+use std::fmt;
+
 use aes::{Aes128, Aes192, Aes256};
 use aes_gcm::{
     aead::{consts::U12, AeadInPlace, KeyInit},
@@ -12,7 +15,6 @@ use generic_array::{
 use num_enum::{FromPrimitive, IntoPrimitive, TryFromPrimitive};
 use ocb3::{Nonce as Ocb3Nonce, Ocb3};
 use sha2::Sha256;
-use snafu::Snafu;
 
 use super::sym::SymmetricKeyAlgorithm;
 use crate::{types::Tag, zeroize::Zeroizing};
@@ -30,19 +32,90 @@ mod encryptor;
 pub use self::{decryptor::StreamDecryptor, encryptor::StreamEncryptor};
 
 /// AEAD related possible errors.
-#[derive(Debug, Snafu)]
+#[derive(Debug)]
 pub enum Error {
-    #[snafu(display("unsupported algorithm {:?}", alg))]
-    UnsupporedAlgorithm { alg: AeadAlgorithm },
-    #[snafu(display("invalid session key: length does not match {} != {}", alg.key_size(), session_key_size))]
+    UnsupporedAlgorithm {
+        alg: AeadAlgorithm,
+    },
     InvalidSessionKey {
         alg: SymmetricKeyAlgorithm,
         session_key_size: usize,
     },
-    #[snafu(display("decryption failed: {:?}", alg))]
-    Decrypt { alg: AeadAlgorithm },
-    #[snafu(display("encryption failed: {:?}", alg))]
-    Encrypt { alg: AeadAlgorithm },
+    Decrypt {
+        alg: AeadAlgorithm,
+    },
+    Encrypt {
+        alg: AeadAlgorithm,
+    },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::UnsupporedAlgorithm { alg } => write!(f, "unsupported algorithm {:?}", alg),
+            Self::InvalidSessionKey {
+                alg,
+                session_key_size,
+            } => write!(
+                f,
+                "invalid session key: length does not match {} != {}",
+                alg.key_size(),
+                session_key_size,
+            ),
+            Self::Decrypt { alg } => write!(f, "decryption failed: {:?}", alg),
+            Self::Encrypt { alg } => write!(f, "encryption failed: {:?}", alg),
+        }
+    }
+}
+
+impl StdError for Error {}
+
+pub(crate) struct UnsupporedAlgorithmSnafu {
+    pub(crate) alg: AeadAlgorithm,
+}
+
+impl UnsupporedAlgorithmSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::UnsupporedAlgorithm { alg: self.alg }
+    }
+}
+
+pub(crate) struct InvalidSessionKeySnafu {
+    pub(crate) alg: SymmetricKeyAlgorithm,
+    pub(crate) session_key_size: usize,
+}
+
+impl InvalidSessionKeySnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::InvalidSessionKey {
+            alg: self.alg,
+            session_key_size: self.session_key_size,
+        }
+    }
+}
+
+pub(crate) struct DecryptSnafu {
+    pub(crate) alg: AeadAlgorithm,
+}
+
+impl DecryptSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::Decrypt { alg: self.alg }
+    }
+}
+
+pub(crate) struct EncryptSnafu {
+    pub(crate) alg: AeadAlgorithm,
+}
+
+impl EncryptSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::Encrypt { alg: self.alg }
+    }
 }
 
 /// Available AEAD algorithms.

@@ -1,3 +1,4 @@
+use std::error::Error as StdError;
 use std::fmt;
 use std::str::FromStr;
 
@@ -6,10 +7,8 @@ use md5::Md5;
 use num_enum::{FromPrimitive, IntoPrimitive};
 use ripemd::Ripemd160;
 use sha1_checked::{CollisionResult, Sha1};
-use snafu::Snafu;
 
 use super::checksum::Sha1HashCollision;
-use crate::crypto::checksum::Sha1HashCollisionSnafu;
 
 /// Available hash algorithms.
 /// Ref: <https://www.rfc-editor.org/rfc/rfc9580.html#name-hash-algorithms>
@@ -146,12 +145,45 @@ impl std::io::Write for WriteHasher<'_> {
     }
 }
 
-#[derive(Debug, Snafu)]
+#[derive(Debug)]
 pub enum Error {
-    #[snafu(display("unsupported {:?}", alg))]
     Unsupported { alg: HashAlgorithm },
-    #[snafu(transparent)]
     Sha1HashCollision { source: Sha1HashCollision },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Unsupported { alg } => write!(f, "unsupported {:?}", alg),
+            Self::Sha1HashCollision { source } => fmt::Display::fmt(source, f),
+        }
+    }
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Self::Unsupported { .. } => None,
+            Self::Sha1HashCollision { source } => source.source(),
+        }
+    }
+}
+
+impl From<Sha1HashCollision> for Error {
+    fn from(source: Sha1HashCollision) -> Self {
+        Self::Sha1HashCollision { source }
+    }
+}
+
+struct UnsupportedSnafu {
+    alg: HashAlgorithm,
+}
+
+impl UnsupportedSnafu {
+    #[must_use]
+    fn build(self) -> Error {
+        Error::Unsupported { alg: self.alg }
+    }
 }
 
 impl HashAlgorithm {
@@ -180,7 +212,7 @@ impl HashAlgorithm {
             HashAlgorithm::Sha1 => match Sha1::try_digest(data) {
                 CollisionResult::Ok(output) => output.to_vec(),
                 CollisionResult::Collision(_) | CollisionResult::Mitigated(_) => {
-                    return Err(Sha1HashCollisionSnafu {}.build().into());
+                    return Err(Sha1HashCollision.into());
                 }
             },
             HashAlgorithm::Ripemd160 => Ripemd160::digest(data).to_vec(),

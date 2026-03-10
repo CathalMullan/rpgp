@@ -1,4 +1,5 @@
 use std::{
+    error::Error,
     fmt,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -42,12 +43,41 @@ impl TryFrom<SystemTime> for Timestamp {
 }
 
 /// Error when trying to convert a [`SystemTime`] into a [`Timestamp`].
-#[derive(Debug, snafu::Snafu)]
+#[derive(Debug)]
 pub enum TimestampError {
-    #[snafu(display("time was before 1970-01-01 00:00:00"))]
     TooFarBack,
-    #[snafu(display("time is more than u32::MAX seconds into the future"))]
     TooFarIntoTheFuture,
+}
+
+impl fmt::Display for TimestampError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TooFarBack => f.write_str("time was before 1970-01-01 00:00:00"),
+            Self::TooFarIntoTheFuture => {
+                f.write_str("time is more than u32::MAX seconds into the future")
+            }
+        }
+    }
+}
+
+impl Error for TimestampError {}
+
+pub(crate) struct TooFarBackSnafu;
+
+impl TooFarBackSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> TimestampError {
+        TimestampError::TooFarBack
+    }
+}
+
+pub(crate) struct TooFarIntoTheFutureSnafu;
+
+impl TooFarIntoTheFutureSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> TimestampError {
+        TimestampError::TooFarIntoTheFuture
+    }
 }
 
 impl Timestamp {

@@ -1,8 +1,7 @@
-use std::io;
+use std::{error::Error, fmt, io};
 
 use log::warn;
 use smallvec::SmallVec;
-use snafu::Snafu;
 
 use crate::{
     composed::{
@@ -373,9 +372,16 @@ impl PublicOrSecret {
 
 /// Error returned when trying to convert [`PublicOrSecret`] key
 /// into the wrong type.
-#[derive(Debug, Clone, PartialEq, Eq, Snafu)]
-#[snafu(display("Attempt to convert PublicOrSecret key to the wrong type"))]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TryFromPublicOrSecretError;
+
+impl fmt::Display for TryFromPublicOrSecretError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Attempt to convert PublicOrSecret key to the wrong type")
+    }
+}
+
+impl Error for TryFromPublicOrSecretError {}
 
 impl TryFrom<PublicOrSecret> for SignedPublicKey {
     type Error = TryFromPublicOrSecretError;

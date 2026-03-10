@@ -1,9 +1,11 @@
 //! rPGP errors
 
+use std::backtrace::Backtrace;
+use std::error::Error as StdError;
+use std::fmt;
 use std::num::TryFromIntError;
 
 use ed25519_dalek::SignatureError;
-use snafu::{Backtrace, Snafu};
 
 use crate::composed::{SecretKeyParamsBuilderError, SubkeyParamsBuilderError};
 
@@ -15,130 +17,331 @@ pub const MPI_TOO_LONG: u32 = 1000;
 pub use crate::parsing::{Error as ParsingError, RemainingError};
 
 /// Error types
-#[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[derive(Debug)]
 #[non_exhaustive]
 pub enum Error {
-    #[snafu(display("invalid input"))]
-    InvalidInput { backtrace: Option<Backtrace> },
-    #[snafu(display("invalid armor wrappers"))]
+    InvalidInput {
+        backtrace: Option<Backtrace>,
+    },
     InvalidArmorWrappers,
-    #[snafu(display("invalid crc24 checksum"))]
     InvalidChecksum,
-    #[snafu(transparent)]
     Base64Decode {
         source: base64::DecodeError,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("requested data size is larger than the packet body"))]
     RequestedSizeTooLarge,
-    #[snafu(display("no matching packet found"))]
-    NoMatchingPacket { backtrace: Option<Backtrace> },
-    #[snafu(display("more than one matching packet was found"))]
+    NoMatchingPacket {
+        backtrace: Option<Backtrace>,
+    },
     TooManyPackets,
-    #[snafu(display("packet contained more data than was parsable (trailing bytes {size})"))]
-    PacketTooLarge { size: u64 },
-    #[snafu(transparent)]
+    PacketTooLarge {
+        size: u64,
+    },
     RSAError {
-        #[snafu(source(from(rsa::errors::Error, Box::new)))]
         source: Box<rsa::errors::Error>,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(transparent)]
     EllipticCurve {
         source: elliptic_curve::Error,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("IO error: {}", source), context(false))]
     IO {
         source: std::io::Error,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("invalid key length"))]
     InvalidKeyLength,
-    #[snafu(display("block mode error"))]
     BlockMode,
-    #[snafu(display("missing key"))]
     MissingKey,
-    #[snafu(display("cfb: invalid key iv length"))]
     CfbInvalidKeyIvLength,
-    #[snafu(display("Not yet implemented: {message}"))]
     Unimplemented {
         message: String,
         backtrace: Option<Backtrace>,
     },
     /// Signals packet versions and parameters we don't support, but can safely ignore
-    #[snafu(display("Unsupported: {message}"))]
     Unsupported {
         message: String,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("{message}"))]
     Message {
         message: String,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("Invalid Packet {kind:?}"))]
-    PacketError { kind: nom::error::ErrorKind },
-    #[snafu(display("Unpadding failed"))]
+    PacketError {
+        kind: nom::error::ErrorKind,
+    },
     UnpadError,
-    #[snafu(display("Padding failed"))]
     PadError,
-    #[snafu(transparent)]
     Utf8Error {
         source: std::str::Utf8Error,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(transparent)]
     ParseIntError {
         source: std::num::ParseIntError,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("Invalid Packet Content {source:?}"))]
-    InvalidPacketContent { source: Box<Error> },
-    #[snafu(transparent)]
-    SignatureError { source: SignatureError },
-    #[snafu(display("Modification Detection Code error"))]
+    InvalidPacketContent {
+        source: Box<Error>,
+    },
+    SignatureError {
+        source: SignatureError,
+    },
     MdcError,
-    #[snafu(transparent)]
     TryFromInt {
         source: TryFromIntError,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(display("AEAD {:?}", source), context(false))]
-    Aead { source: crate::crypto::aead::Error },
-    #[snafu(display("AES key wrap {:?}", source), context(false))]
+    Aead {
+        source: crate::crypto::aead::Error,
+    },
     AesKw {
         source: crate::crypto::aes_kw::Error,
     },
-    #[snafu(transparent)]
     ChecksumMissmatch {
         source: crate::crypto::checksum::ChecksumMismatch,
     },
-    #[snafu(transparent)]
     Sha1HashCollision {
         source: crate::crypto::checksum::Sha1HashCollision,
     },
-    #[snafu(transparent)]
-    AesKek { source: aes_kw::Error },
-    #[snafu(transparent)]
+    AesKek {
+        source: aes_kw::Error,
+    },
     PacketParsing {
-        #[snafu(backtrace, source(from(ParsingError, Box::new)))]
         source: Box<ParsingError>,
     },
-    #[snafu(display("packet is incomplete"))]
     PacketIncomplete {
-        #[snafu(backtrace)]
         source: Box<ParsingError>,
     },
-    #[snafu(transparent)]
     Argon2 {
         source: argon2::Error,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(transparent)]
-    SigningError { source: cx448::SigningError },
+    SigningError {
+        source: cx448::SigningError,
+    },
 }
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidInput { .. } => f.write_str("invalid input"),
+            Self::InvalidArmorWrappers => f.write_str("invalid armor wrappers"),
+            Self::InvalidChecksum => f.write_str("invalid crc24 checksum"),
+            Self::Base64Decode { source, .. } => fmt::Display::fmt(source, f),
+            Self::RequestedSizeTooLarge => {
+                f.write_str("requested data size is larger than the packet body")
+            }
+            Self::NoMatchingPacket { .. } => f.write_str("no matching packet found"),
+            Self::TooManyPackets => f.write_str("more than one matching packet was found"),
+            Self::PacketTooLarge { size } => write!(
+                f,
+                "packet contained more data than was parsable (trailing bytes {})",
+                size,
+            ),
+            Self::RSAError { source, .. } => fmt::Display::fmt(source, f),
+            Self::EllipticCurve { source, .. } => fmt::Display::fmt(source, f),
+            Self::IO { source, .. } => write!(f, "IO error: {}", source),
+            Self::InvalidKeyLength => f.write_str("invalid key length"),
+            Self::BlockMode => f.write_str("block mode error"),
+            Self::MissingKey => f.write_str("missing key"),
+            Self::CfbInvalidKeyIvLength => f.write_str("cfb: invalid key iv length"),
+            Self::Unimplemented { message, .. } => write!(f, "Not yet implemented: {}", message),
+            Self::Unsupported { message, .. } => write!(f, "Unsupported: {}", message),
+            Self::Message { message, .. } => fmt::Display::fmt(message, f),
+            Self::PacketError { kind } => write!(f, "Invalid Packet {:?}", kind),
+            Self::UnpadError => f.write_str("Unpadding failed"),
+            Self::PadError => f.write_str("Padding failed"),
+            Self::Utf8Error { source, .. } => fmt::Display::fmt(source, f),
+            Self::ParseIntError { source, .. } => fmt::Display::fmt(source, f),
+            Self::InvalidPacketContent { source } => {
+                write!(f, "Invalid Packet Content {:?}", source)
+            }
+            Self::SignatureError { source, .. } => fmt::Display::fmt(source, f),
+            Self::MdcError => f.write_str("Modification Detection Code error"),
+            Self::TryFromInt { source, .. } => fmt::Display::fmt(source, f),
+            Self::Aead { source } => write!(f, "AEAD {:?}", source),
+            Self::AesKw { source } => write!(f, "AES key wrap {:?}", source),
+            Self::ChecksumMissmatch { source, .. } => fmt::Display::fmt(source, f),
+            Self::Sha1HashCollision { source, .. } => fmt::Display::fmt(source, f),
+            Self::AesKek { source, .. } => fmt::Display::fmt(source, f),
+            Self::PacketParsing { source, .. } => fmt::Display::fmt(source, f),
+            Self::PacketIncomplete { .. } => f.write_str("packet is incomplete"),
+            Self::Argon2 { source, .. } => fmt::Display::fmt(source, f),
+            Self::SigningError { source, .. } => fmt::Display::fmt(source, f),
+        }
+    }
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Self::InvalidInput { .. } => None,
+            Self::InvalidArmorWrappers => None,
+            Self::InvalidChecksum => None,
+            Self::Base64Decode { source, .. } => source.source(),
+            Self::RequestedSizeTooLarge => None,
+            Self::NoMatchingPacket { .. } => None,
+            Self::TooManyPackets => None,
+            Self::PacketTooLarge { .. } => None,
+            Self::RSAError { source, .. } => source.source(),
+            Self::EllipticCurve { source, .. } => source.source(),
+            Self::IO { source, .. } => Some(source),
+            Self::InvalidKeyLength => None,
+            Self::BlockMode => None,
+            Self::MissingKey => None,
+            Self::CfbInvalidKeyIvLength => None,
+            Self::Unimplemented { .. } => None,
+            Self::Unsupported { .. } => None,
+            Self::Message { .. } => None,
+            Self::PacketError { .. } => None,
+            Self::UnpadError => None,
+            Self::PadError => None,
+            Self::Utf8Error { source, .. } => source.source(),
+            Self::ParseIntError { source, .. } => source.source(),
+            Self::InvalidPacketContent { source, .. } => Some(&**source),
+            Self::SignatureError { source, .. } => source.source(),
+            Self::MdcError => None,
+            Self::TryFromInt { source, .. } => source.source(),
+            Self::Aead { source } => Some(source),
+            Self::AesKw { source } => Some(source),
+            Self::ChecksumMissmatch { source, .. } => source.source(),
+            Self::Sha1HashCollision { source, .. } => source.source(),
+            Self::AesKek { source, .. } => source.source(),
+            Self::PacketParsing { source, .. } => source.source(),
+            Self::PacketIncomplete { source, .. } => Some(&**source),
+            Self::Argon2 { source, .. } => source.source(),
+            Self::SigningError { source, .. } => source.source(),
+        }
+    }
+}
+
+// --- From impls for transparent variants ---
+
+impl From<base64::DecodeError> for Error {
+    fn from(source: base64::DecodeError) -> Self {
+        Self::Base64Decode {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+impl From<rsa::errors::Error> for Error {
+    fn from(error: rsa::errors::Error) -> Self {
+        Self::RSAError {
+            backtrace: Some(Backtrace::capture()),
+            source: Box::new(error),
+        }
+    }
+}
+
+impl From<elliptic_curve::Error> for Error {
+    fn from(source: elliptic_curve::Error) -> Self {
+        Self::EllipticCurve {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+// context(false) — auto From
+impl From<std::io::Error> for Error {
+    fn from(source: std::io::Error) -> Self {
+        Self::IO {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+impl From<std::str::Utf8Error> for Error {
+    fn from(source: std::str::Utf8Error) -> Self {
+        Self::Utf8Error {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+impl From<std::num::ParseIntError> for Error {
+    fn from(source: std::num::ParseIntError) -> Self {
+        Self::ParseIntError {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+impl From<SignatureError> for Error {
+    fn from(source: SignatureError) -> Self {
+        Self::SignatureError { source }
+    }
+}
+
+impl From<TryFromIntError> for Error {
+    fn from(source: TryFromIntError) -> Self {
+        Self::TryFromInt {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+// context(false) — auto From
+impl From<crate::crypto::aead::Error> for Error {
+    fn from(source: crate::crypto::aead::Error) -> Self {
+        Self::Aead { source }
+    }
+}
+
+// context(false) — auto From
+impl From<crate::crypto::aes_kw::Error> for Error {
+    fn from(source: crate::crypto::aes_kw::Error) -> Self {
+        Self::AesKw { source }
+    }
+}
+
+impl From<crate::crypto::checksum::ChecksumMismatch> for Error {
+    fn from(source: crate::crypto::checksum::ChecksumMismatch) -> Self {
+        Self::ChecksumMissmatch { source }
+    }
+}
+
+impl From<crate::crypto::checksum::Sha1HashCollision> for Error {
+    fn from(source: crate::crypto::checksum::Sha1HashCollision) -> Self {
+        Self::Sha1HashCollision { source }
+    }
+}
+
+impl From<aes_kw::Error> for Error {
+    fn from(source: aes_kw::Error) -> Self {
+        Self::AesKek { source }
+    }
+}
+
+impl From<ParsingError> for Error {
+    fn from(error: ParsingError) -> Self {
+        Self::PacketParsing {
+            source: Box::new(error),
+        }
+    }
+}
+
+impl From<argon2::Error> for Error {
+    fn from(source: argon2::Error) -> Self {
+        Self::Argon2 {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
+}
+
+impl From<cx448::SigningError> for Error {
+    fn from(source: cx448::SigningError) -> Self {
+        Self::SigningError { source }
+    }
+}
+
+// --- Manual From impls (not from snafu) ---
 
 impl From<crate::crypto::hash::Error> for Error {
     fn from(err: crate::crypto::hash::Error) -> Self {
@@ -174,7 +377,7 @@ impl From<SecretKeyParamsBuilderError> for Error {
     fn from(err: SecretKeyParamsBuilderError) -> Error {
         Error::Message {
             message: err.to_string(),
-            backtrace: Some(snafu::GenerateImplicitData::generate()),
+            backtrace: Some(Backtrace::capture()),
         }
     }
 }
@@ -183,7 +386,7 @@ impl From<SubkeyParamsBuilderError> for Error {
     fn from(err: SubkeyParamsBuilderError) -> Error {
         Error::Message {
             message: err.to_string(),
-            backtrace: Some(snafu::GenerateImplicitData::generate()),
+            backtrace: Some(Backtrace::capture()),
         }
     }
 }
@@ -192,7 +395,59 @@ impl From<String> for Error {
     fn from(err: String) -> Error {
         Error::Message {
             message: err,
-            backtrace: Some(snafu::GenerateImplicitData::generate()),
+            backtrace: Some(Backtrace::capture()),
+        }
+    }
+}
+
+// --- Context selectors ---
+
+pub(crate) struct InvalidInputSnafu;
+
+impl InvalidInputSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::InvalidInput {
+            backtrace: Some(Backtrace::capture()),
+        }
+    }
+}
+
+pub(crate) struct NoMatchingPacketSnafu;
+
+impl NoMatchingPacketSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::NoMatchingPacket {
+            backtrace: Some(Backtrace::capture()),
+        }
+    }
+}
+
+pub(crate) struct UnimplementedSnafu {
+    pub(crate) message: String,
+}
+
+impl UnimplementedSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::Unimplemented {
+            message: self.message,
+            backtrace: Some(Backtrace::capture()),
+        }
+    }
+}
+
+pub(crate) struct UnsupportedSnafu {
+    pub(crate) message: String,
+}
+
+impl UnsupportedSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> Error {
+        Error::Unsupported {
+            message: self.message,
+            backtrace: Some(Backtrace::capture()),
         }
     }
 }
@@ -223,13 +478,13 @@ macro_rules! bail {
     ($e:expr) => {
         return Err($crate::errors::Error::Message {
             message: $e.to_string(),
-            backtrace: ::snafu::GenerateImplicitData::generate(),
+            backtrace: Some(::std::backtrace::Backtrace::capture()),
         })
     };
     ($fmt:expr, $($arg:tt)+) => {
         return Err($crate::errors::Error::Message {
             message: format!($fmt, $($arg)+),
-            backtrace: ::snafu::GenerateImplicitData::generate(),
+            backtrace: Some(::std::backtrace::Backtrace::capture()),
         })
     };
 }
@@ -238,13 +493,13 @@ macro_rules! format_err {
     ($e:expr) => {
         $crate::errors::Error::Message {
             message: $e.to_string(),
-            backtrace: ::snafu::GenerateImplicitData::generate(),
+            backtrace: Some(::std::backtrace::Backtrace::capture()),
         }
     };
     ($fmt:expr, $($arg:tt)+) => {
         $crate::errors::Error::Message {
             message: format!($fmt, $($arg)+),
-            backtrace: ::snafu::GenerateImplicitData::generate(),
+            backtrace: Some(::std::backtrace::Backtrace::capture()),
         }
     };
 }

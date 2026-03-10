@@ -1,3 +1,4 @@
+use std::error::Error;
 use std::fmt;
 
 use byteorder::BigEndian;
@@ -36,10 +37,30 @@ impl TryFrom<std::time::Duration> for Duration {
 }
 
 /// Error when trying to convert a [`std::time::Duration`] into a [`Duration`].
-#[derive(Debug, snafu::Snafu)]
+#[derive(Debug)]
 pub enum DurationError {
-    #[snafu(display("duration is more than u32::MAX seconds into the future"))]
     TooFarIntoTheFuture,
+}
+
+impl fmt::Display for DurationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TooFarIntoTheFuture => {
+                f.write_str("duration is more than u32::MAX seconds into the future")
+            }
+        }
+    }
+}
+
+impl Error for DurationError {}
+
+pub(crate) struct TooFarIntoTheFutureSnafu;
+
+impl TooFarIntoTheFutureSnafu {
+    #[must_use]
+    pub(crate) fn build(self) -> DurationError {
+        DurationError::TooFarIntoTheFuture
+    }
 }
 
 impl Duration {

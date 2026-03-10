@@ -1,22 +1,52 @@
+use std::error::Error as StdError;
+use std::fmt;
+
 use generic_array::{
     typenum::{U16, U24, U32},
     GenericArray,
 };
-use snafu::{ResultExt, Snafu};
 
 use crate::zeroize::Zeroizing;
 
 const IV_LEN: usize = 8;
 
 /// AES key wrap possible errors.
-#[derive(Debug, Snafu)]
+#[derive(Debug)]
 pub enum Error {
-    #[snafu(display("invalid key size: {}", size))]
     InvalidKeySize { size: usize },
-    #[snafu(display("wrap failed"))]
     Wrap { source: aes_kw::Error },
-    #[snafu(display("unwrap failed"))]
     Unwrap { source: aes_kw::Error },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::InvalidKeySize { size } => write!(f, "invalid key size: {}", size),
+            Self::Wrap { .. } => f.write_str("wrap failed"),
+            Self::Unwrap { .. } => f.write_str("unwrap failed"),
+        }
+    }
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Self::InvalidKeySize { .. } => None,
+            Self::Wrap { source } => Some(source),
+            Self::Unwrap { source } => Some(source),
+        }
+    }
+}
+
+struct InvalidKeySizeSnafu {
+    size: usize,
+}
+
+impl InvalidKeySizeSnafu {
+    #[must_use]
+    fn build(self) -> Error {
+        Error::InvalidKeySize { size: self.size }
+    }
 }
 
 /// AES Key Wrap
@@ -43,7 +73,7 @@ pub fn wrap(key: &[u8], data: &[u8]) -> Result<Vec<u8>, Error> {
             return Err(InvalidKeySizeSnafu { size: aes_size }.build());
         }
     };
-    res.context(WrapSnafu)
+    res.map_err(|source| Error::Wrap { source })
 }
 
 /// AES Key Unwrap
@@ -73,7 +103,7 @@ pub fn unwrap(key: &[u8], data: &[u8]) -> Result<Zeroizing<Vec<u8>>, Error> {
             return Err(InvalidKeySizeSnafu { size: aes_size }.build());
         }
     }
-    .context(WrapSnafu)?;
+    .map_err(|source| Error::Unwrap { source })?;
 
     Ok(out)
 }

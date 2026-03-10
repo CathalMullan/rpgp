@@ -1,31 +1,65 @@
 //! Parsing functions to parse data using [Buf].
 
+use std::backtrace::Backtrace;
+use std::error::Error as StdError;
+use std::fmt;
+
 use bytes::{Buf, Bytes};
-use snafu::{Backtrace, Snafu};
 
 /// Parsing errors
-#[derive(Debug, Snafu)]
+#[derive(Debug)]
 pub enum Error {
-    #[snafu(display("{}: reading {:?}", context, typ))]
     TooShort {
         typ: Typ,
         context: &'static str,
-        #[snafu(backtrace)]
         source: RemainingError,
     },
-    #[snafu(display("expected {}, found {}", debug_bytes(expected), debug_bytes(&found[..])))]
     TagMismatch {
         expected: Vec<u8>,
         found: Bytes,
         context: &'static str,
         backtrace: Option<Backtrace>,
     },
-    #[snafu(transparent)]
     UnexpectedEof {
         source: std::io::Error,
-        #[snafu(backtrace)]
         backtrace: Option<Backtrace>,
     },
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::TooShort { context, typ, .. } => write!(f, "{}: reading {:?}", context, typ),
+            Self::TagMismatch {
+                expected, found, ..
+            } => write!(
+                f,
+                "expected {}, found {}",
+                debug_bytes(expected),
+                debug_bytes(&found[..]),
+            ),
+            Self::UnexpectedEof { source, .. } => fmt::Display::fmt(source, f),
+        }
+    }
+}
+
+impl StdError for Error {
+    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+        match self {
+            Self::TooShort { source, .. } => Some(source),
+            Self::TagMismatch { .. } => None,
+            Self::UnexpectedEof { source, .. } => source.source(),
+        }
+    }
+}
+
+impl From<std::io::Error> for Error {
+    fn from(source: std::io::Error) -> Self {
+        Self::UnexpectedEof {
+            backtrace: Some(Backtrace::capture()),
+            source,
+        }
+    }
 }
 
 impl Error {
@@ -46,13 +80,21 @@ fn debug_bytes(b: &[u8]) -> String {
     hex::encode(b)
 }
 
-#[derive(Debug, Snafu)]
-#[snafu(display("needed {}, remaining {}", needed, remaining))]
+#[derive(Debug)]
 pub struct RemainingError {
     pub needed: usize,
     pub remaining: usize,
+    #[allow(dead_code)]
     backtrace: Option<Backtrace>,
 }
+
+impl fmt::Display for RemainingError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "needed {}, remaining {}", self.needed, self.remaining)
+    }
+}
+
+impl StdError for RemainingError {}
 
 #[derive(Debug)]
 pub enum Typ {
@@ -94,7 +136,7 @@ pub trait BufParsing: Buf + Sized {
             return Err(RemainingError {
                 needed: size,
                 remaining: self.remaining(),
-                backtrace: snafu::GenerateImplicitData::generate(),
+                backtrace: Some(Backtrace::capture()),
             });
         }
 
