@@ -148,6 +148,10 @@ malformed-artifact-compat = []
 draft-pqc = ["dep:ml-kem", "dep:ml-dsa", "dep:slh-dsa"]
 draft-wussler-openpgp-forwarding = []
 
+[patch.crates-io]
+cx448 = { git = "https://github.com/CathalMullan/cx448.git", branch = "main" }
+num-bigint-dig = { git = "https://github.com/CathalMullan/num-bigint.git", branch = "master" }
+
 [profile.bench]
 debug = 2
 
