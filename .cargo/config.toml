@@ -1,0 +1,20 @@
+[build]
+rustflags = [
+  "-C",
+  "target-cpu=native",
+  "-C",
+  "linker=clang",
+  "-C",
+  "link-arg=--ld-path=wild",
+  "-Z",
+  "threads=0",
+]
+
+[unstable]
+profile-hint-mostly-unused = true
+
+[profile.dev]
+hint-mostly-unused = true
+
+[profile.release]
+hint-mostly-unused = true
