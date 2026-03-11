@@ -17,7 +17,7 @@ use std::ops::Deref;
 
 use rand::{CryptoRng, Rng};
 use signature::{Signer as _, Verifier};
-use zeroize::{Zeroizing, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     crypto::{hash::HashAlgorithm, Signer},

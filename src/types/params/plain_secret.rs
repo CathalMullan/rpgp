@@ -9,7 +9,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use hkdf::Hkdf;
 use log::debug;
 use sha2::Sha256;
-use zeroize::{Zeroizing, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 #[cfg(feature = "draft-pqc")]
 use crate::crypto::{

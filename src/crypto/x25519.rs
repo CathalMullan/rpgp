@@ -6,7 +6,7 @@ use log::debug;
 use rand::{CryptoRng, Rng};
 use sha2::Sha256;
 use x25519_dalek::{PublicKey, StaticSecret};
-use zeroize::{Zeroizing, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     crypto::{aes_kw, Decryptor},

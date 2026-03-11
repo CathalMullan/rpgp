@@ -17,7 +17,7 @@ use signature::{
     hazmat::{PrehashSigner, PrehashVerifier},
     SignatureEncoding,
 };
-use zeroize::{Zeroizing, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     crypto::{hash::HashAlgorithm, Decryptor, Signer},

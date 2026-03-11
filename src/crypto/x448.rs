@@ -5,7 +5,7 @@ use hkdf::HkdfExtract;
 use log::debug;
 use rand::{CryptoRng, Rng};
 use sha2::Sha512;
-use zeroize::{Zeroizing, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     crypto::{aes_kw, Decryptor},

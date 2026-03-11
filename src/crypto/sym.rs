@@ -10,10 +10,8 @@ use cipher::{BlockCipher, BlockDecrypt, BlockEncryptMut};
 use des::TdesEde3;
 use idea::Idea;
 use log::debug;
-
 use rand::{CryptoRng, Rng};
 use twofish::Twofish;
-
 use zeroize::Zeroizing;
 
 use crate::{

@@ -2,9 +2,8 @@
 
 use zeroize::Zeroizing;
 
-use crate::types::SignatureBytes;
-
 use self::hash::HashAlgorithm;
+use crate::types::SignatureBytes;
 
 // Symmetric
 

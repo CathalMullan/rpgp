@@ -1,7 +1,7 @@
 use std::fmt;
 
 use log::debug;
-use zeroize::{Zeroize, Zeroizing, ZeroizeOnDrop};
+use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     crypto::sym::SymmetricKeyAlgorithm,

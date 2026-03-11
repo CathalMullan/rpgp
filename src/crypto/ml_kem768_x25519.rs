@@ -9,7 +9,7 @@ use ml_kem::{
 use rand::{CryptoRng, Rng};
 use sha3::{Digest, Sha3_256};
 use x25519_dalek::{PublicKey, StaticSecret};
-use zeroize::{Zeroizing, ZeroizeOnDrop};
+use zeroize::{ZeroizeOnDrop, Zeroizing};
 
 use crate::{
     crypto::{aes_kw, public_key::PublicKeyAlgorithm, Decryptor},

@@ -13,7 +13,6 @@ use idea::Idea;
 use log::debug;
 use sha1::{Digest, Sha1};
 use twofish::Twofish;
-
 use zeroize::Zeroizing;
 
 use crate::{
