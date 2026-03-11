@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::zeroize::Zeroizing;
+use zeroize::Zeroizing;
 
 /// A type to unlock a secret key packet, or an
 /// [SKESK packet](crate::packet::SymKeyEncryptedSessionKey).

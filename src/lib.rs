@@ -31,7 +31,6 @@ extern crate pretty_assertions;
 pub use bytes;
 
 pub(crate) mod util;
-pub(crate) mod zeroize;
 
 pub mod adapter;
 pub mod armor;

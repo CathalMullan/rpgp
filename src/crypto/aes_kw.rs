@@ -6,7 +6,7 @@ use generic_array::{
     GenericArray,
 };
 
-use crate::zeroize::Zeroizing;
+use zeroize::Zeroizing;
 
 const IV_LEN: usize = 8;
 

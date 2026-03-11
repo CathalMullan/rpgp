@@ -9,15 +9,13 @@ use ml_kem::{
 };
 use rand::{CryptoRng, Rng};
 use sha3::{Digest, Sha3_256};
-#[cfg(feature = "zeroize")]
-use zeroize::ZeroizeOnDrop;
+use zeroize::{Zeroizing, ZeroizeOnDrop};
 
 use crate::{
     crypto::{aes_kw, public_key::PublicKeyAlgorithm, Decryptor},
     errors::{ensure, Result},
     ser::Serialize,
     types::MlKem1024X448PublicParams,
-    zeroize::Zeroizing,
 };
 
 /// Size in bytes of the X448 secret key.
@@ -44,7 +42,6 @@ impl fmt::Debug for SecretKey {
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for SecretKey {}
 
 impl From<&SecretKey> for MlKem1024X448PublicParams {

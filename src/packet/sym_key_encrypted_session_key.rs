@@ -8,6 +8,7 @@ use log::debug;
 use proptest::prelude::*;
 use rand::{CryptoRng, Rng};
 use sha2::Sha256;
+use zeroize::Zeroizing;
 
 use crate::{
     composed::{PlainSessionKey, RawSessionKey},
@@ -20,7 +21,6 @@ use crate::{
     parsing_reader::BufReadParsing,
     ser::Serialize,
     types::{Password, SkeskVersion, StringToKey, Tag},
-    zeroize::Zeroizing,
 };
 
 /// Symmetric-Key Encrypted Session Key (SKESK) Packet

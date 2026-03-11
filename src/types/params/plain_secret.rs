@@ -9,8 +9,7 @@ use bytes::{BufMut, Bytes, BytesMut};
 use hkdf::Hkdf;
 use log::debug;
 use sha2::Sha256;
-#[cfg(feature = "zeroize")]
-use zeroize::ZeroizeOnDrop;
+use zeroize::{Zeroizing, ZeroizeOnDrop};
 
 #[cfg(feature = "draft-pqc")]
 use crate::crypto::{
@@ -32,12 +31,10 @@ use crate::{
         PublicParams, S2kParams, StringToKey, Tag,
     },
     util::TeeWriter,
-    zeroize::Zeroizing,
 };
 
 /// Raw secret key material in unlocked/unencrypted form
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 pub enum PlainSecretParams {
     RSA(rsa::SecretKey),
     DSA(dsa::SecretKey),
@@ -64,13 +61,15 @@ pub enum PlainSecretParams {
     #[cfg(feature = "draft-pqc")]
     SlhDsaShake256s(slh_dsa_shake256s::SecretKey),
     Unknown {
-        #[cfg_attr(feature = "zeroize", zeroize(skip))]
         alg: PublicKeyAlgorithm,
         data: Zeroizing<Vec<u8>>,
-        #[cfg_attr(feature = "zeroize", zeroize(skip))]
         pub_params: Bytes,
     },
 }
+
+// Inner key types zeroize themselves on drop, so PlainSecretParams
+// relies on field destructors for zeroization.
+impl ZeroizeOnDrop for PlainSecretParams {}
 
 impl fmt::Debug for PlainSecretParams {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

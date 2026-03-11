@@ -5,25 +5,25 @@ use hkdf::HkdfExtract;
 use log::debug;
 use rand::{CryptoRng, Rng};
 use sha2::Sha512;
-#[cfg(feature = "zeroize")]
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroizing, ZeroizeOnDrop};
 
 use crate::{
     crypto::{aes_kw, Decryptor},
     errors::{bail, ensure, Result},
     ser::Serialize,
     types::X448PublicParams,
-    zeroize::Zeroizing,
 };
 
 pub const KEY_LEN: usize = 56;
 
 /// Secret key for X448
 #[derive(Clone)]
-#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct SecretKey {
     secret: x448::Secret,
 }
+
+// x448::Secret zeroizes itself on drop.
+impl ZeroizeOnDrop for SecretKey {}
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

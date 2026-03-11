@@ -17,7 +17,9 @@ use ocb3::{Nonce as Ocb3Nonce, Ocb3};
 use sha2::Sha256;
 
 use super::sym::SymmetricKeyAlgorithm;
-use crate::{types::Tag, zeroize::Zeroizing};
+use zeroize::Zeroizing;
+
+use crate::types::Tag;
 
 type Aes128Ocb3 = Ocb3<Aes128, U15, U16>;
 type Aes192Ocb3 = Ocb3<Aes192, U15, U16>;

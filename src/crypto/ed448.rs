@@ -1,7 +1,6 @@
 use std::fmt;
 
 use rand::{CryptoRng, Rng};
-#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -18,13 +17,15 @@ pub const KEY_LEN: usize = 57;
 
 /// Secret key for EdDSA with Curve448.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey {
     /// The secret point.
     #[cfg_attr(test, proptest(strategy = "tests::key_gen()"))]
     secret: cx448::SigningKey,
 }
+
+// cx448::SigningKey zeroizes itself on drop.
+impl ZeroizeOnDrop for SecretKey {}
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

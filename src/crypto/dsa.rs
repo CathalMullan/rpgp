@@ -5,7 +5,6 @@ use dsa::{Components, Signature, SigningKey};
 use num_bigint::BigUint;
 use rand::{CryptoRng, Rng};
 use signature::hazmat::PrehashVerifier;
-#[cfg(feature = "zeroize")]
 use zeroize::Zeroize;
 
 use crate::{
@@ -39,7 +38,6 @@ impl From<&SecretKey> for DsaPublicParams {
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl Zeroize for SecretKey {
     fn zeroize(&mut self) {
         // TODO: https://github.com/RustCrypto/signatures/issues/883
@@ -47,14 +45,12 @@ impl Zeroize for SecretKey {
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl Drop for SecretKey {
     fn drop(&mut self) {
         self.zeroize();
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl zeroize::ZeroizeOnDrop for SecretKey {}
 
 impl Eq for SecretKey {}

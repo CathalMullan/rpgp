@@ -4,6 +4,8 @@ use std::io::{self, BufRead, Read};
 use bytes::{Buf, BytesMut};
 use log::debug;
 
+use zeroize::Zeroizing;
+
 use crate::{
     crypto::{
         aead::{aead_setup_rfc9580, AeadAlgorithm, ChunkSize, Error, UnsupporedAlgorithmSnafu},
@@ -11,7 +13,6 @@ use crate::{
     },
     types::Tag,
     util::fill_buffer_bytes,
-    zeroize::Zeroizing,
 };
 
 /// Currently the tag size for all known aeads is 16.

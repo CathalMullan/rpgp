@@ -17,15 +17,13 @@ use signature::{
     hazmat::{PrehashSigner, PrehashVerifier},
     SignatureEncoding,
 };
-#[cfg(feature = "zeroize")]
-use zeroize::ZeroizeOnDrop;
+use zeroize::{Zeroizing, ZeroizeOnDrop};
 
 use crate::{
     crypto::{hash::HashAlgorithm, Decryptor, Signer},
     errors::{format_err, unsupported_err, Error, Result},
     ser::Serialize,
     types::{Mpi, PkeskBytes, RsaPublicParams, SignatureBytes},
-    zeroize::Zeroizing,
 };
 
 /// MAX_KEY_SIZE limits rsa key size while parsing public key packets
@@ -39,9 +37,11 @@ const MAX_KEY_SIZE_GENERATE: usize = 4096;
 
 /// Private Key for RSA.
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub struct SecretKey(#[cfg_attr(test, proptest(strategy = "tests::key_gen()"))] RsaPrivateKey);
+
+// RsaPrivateKey zeroizes itself on drop.
+impl ZeroizeOnDrop for SecretKey {}
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

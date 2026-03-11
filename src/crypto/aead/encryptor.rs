@@ -2,6 +2,8 @@ use std::io;
 
 use bytes::{Buf, BytesMut};
 
+use zeroize::Zeroizing;
+
 use super::{aead_setup_rfc9580, ChunkSize, InvalidSessionKeySnafu};
 use crate::{
     crypto::{
@@ -9,7 +11,6 @@ use crate::{
         sym::SymmetricKeyAlgorithm,
     },
     util::fill_buffer,
-    zeroize::Zeroizing,
 };
 
 pub struct StreamEncryptor<R> {

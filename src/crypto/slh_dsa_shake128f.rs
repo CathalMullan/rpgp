@@ -3,7 +3,6 @@ use std::fmt;
 use rand::{CryptoRng, Rng};
 use signature::{Signer as _, Verifier};
 use slh_dsa::Shake128f;
-#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -33,10 +32,8 @@ impl fmt::Debug for SecretKey {
 
 impl Eq for SecretKey {}
 
-#[cfg(feature = "zeroize")]
 impl ZeroizeOnDrop for SecretKey {}
 
-#[cfg(feature = "zeroize")]
 impl Drop for SecretKey {
     fn drop(&mut self) {
         // TODO: zeroize, fixed in latest `master`

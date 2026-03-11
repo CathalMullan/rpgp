@@ -14,10 +14,11 @@ use log::debug;
 use rand::{CryptoRng, Rng};
 use twofish::Twofish;
 
+use zeroize::Zeroizing;
+
 use crate::{
     composed::RawSessionKey,
     errors::{bail, unimplemented_err, Result},
-    zeroize::Zeroizing,
 };
 
 mod decryptor;
@@ -186,7 +187,6 @@ impl Default for SymmetricKeyAlgorithm {
     }
 }
 
-#[cfg(feature = "zeroize")]
 impl zeroize::DefaultIsZeroes for SymmetricKeyAlgorithm {}
 
 impl SymmetricKeyAlgorithm {

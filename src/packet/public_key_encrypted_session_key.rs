@@ -4,6 +4,7 @@ use std::io::{self, BufRead};
 use byteorder::WriteBytesExt;
 use bytes::Bytes;
 use rand::{CryptoRng, Rng};
+use zeroize::Zeroizing;
 
 use crate::{
     composed::RawSessionKey,
@@ -16,7 +17,6 @@ use crate::{
         EncryptionKey, EskType, Fingerprint, KeyDetails, KeyId, KeyVersion, PkeskBytes,
         PkeskVersion, PublicParams, Tag,
     },
-    zeroize::Zeroizing,
 };
 
 /// Public Key Encrypted Session Key Packet (PKESK)

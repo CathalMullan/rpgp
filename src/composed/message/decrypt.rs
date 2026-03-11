@@ -1,15 +1,13 @@
 use std::fmt;
 
 use log::debug;
-#[cfg(feature = "zeroize")]
-use zeroize::{Zeroize, ZeroizeOnDrop};
+use zeroize::{Zeroize, Zeroizing, ZeroizeOnDrop};
 
 use crate::{
     crypto::sym::SymmetricKeyAlgorithm,
     errors::{ensure, unsupported_err, Result},
     packet::SymKeyEncryptedSessionKey,
     types::{Password, SkeskVersion},
-    zeroize::Zeroizing,
 };
 
 /// Decrypted session key.
@@ -23,7 +21,6 @@ use crate::{
 /// They MUST NOT be produced and decryption is also discouraged:
 /// <https://www.rfc-editor.org/rfc/rfc9580.html#sed>)
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub enum PlainSessionKey {
     /// A session key from a v3 PKESK or a v4 SKESK
     ///
@@ -41,12 +38,43 @@ pub enum PlainSessionKey {
     },
 }
 
+impl Zeroize for PlainSessionKey {
+    fn zeroize(&mut self) {
+        match self {
+            PlainSessionKey::V3_4 { sym_alg: _, key } => key.zeroize(),
+            PlainSessionKey::V5 { key } => key.zeroize(),
+            PlainSessionKey::V6 { key } => key.zeroize(),
+        }
+    }
+}
+
+impl Drop for PlainSessionKey {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for PlainSessionKey {}
+
 /// A raw session key, must be kept secret.
 ///
 /// Usually occurs as a building block of a [PlainSessionKey].
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(Zeroize, ZeroizeOnDrop))]
 pub struct RawSessionKey(Zeroizing<Vec<u8>>);
+
+impl Zeroize for RawSessionKey {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+impl Drop for RawSessionKey {
+    fn drop(&mut self) {
+        self.zeroize();
+    }
+}
+
+impl ZeroizeOnDrop for RawSessionKey {}
 
 impl fmt::Debug for RawSessionKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

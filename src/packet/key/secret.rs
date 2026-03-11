@@ -4,6 +4,8 @@ use generic_array::GenericArray;
 use log::debug;
 use rand::{CryptoRng, Rng};
 
+use zeroize::ZeroizeOnDrop;
+
 use super::public::PubKeyInner;
 use crate::{
     composed::PlainSessionKey,
@@ -31,14 +33,14 @@ use crate::{
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-secret-key-packet-type-id-5>
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
 pub struct SecretKey {
-    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     packet_header: PacketHeader,
-    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     details: super::PublicKey,
     secret_params: SecretParams,
 }
+
+// SecretParams zeroizes itself on drop via inner key types.
+impl ZeroizeOnDrop for SecretKey {}
 
 /// Secret Subkey Packet
 ///
@@ -47,14 +49,14 @@ pub struct SecretKey {
 ///
 /// See <https://www.rfc-editor.org/rfc/rfc9580.html#name-secret-subkey-packet-type-i>
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[cfg_attr(feature = "zeroize", derive(zeroize::ZeroizeOnDrop))]
 pub struct SecretSubkey {
-    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     packet_header: PacketHeader,
-    #[cfg_attr(feature = "zeroize", zeroize(skip))]
     details: super::PublicSubkey,
     secret_params: SecretParams,
 }
+
+// SecretParams zeroizes itself on drop via inner key types.
+impl ZeroizeOnDrop for SecretSubkey {}
 
 impl SecretKey {
     pub fn new(details: super::PublicKey, secret_params: SecretParams) -> Result<Self> {

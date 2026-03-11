@@ -3,8 +3,7 @@ use std::fmt;
 use log::debug;
 use rand::{CryptoRng, Rng};
 use x25519_dalek::{PublicKey, StaticSecret};
-#[cfg(feature = "zeroize")]
-use zeroize::ZeroizeOnDrop;
+use zeroize::{Zeroizing, ZeroizeOnDrop};
 
 use super::hash::HashAlgorithm;
 use crate::{
@@ -15,7 +14,6 @@ use crate::{
     errors::{ensure, ensure_eq, unsupported_err, Error, Result},
     ser::Serialize,
     types::{ecdh::EcdhKdfType, pad_key, EcdhPublicParams, Mpi, PkeskBytes},
-    zeroize::Zeroizing,
 };
 
 /// 20 octets representing "Anonymous Sender    ".
@@ -26,8 +24,10 @@ const ANON_SENDER: [u8; 20] = [
 
 /// ECDH Curve25519 secret key
 #[derive(Clone)]
-#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 pub struct Curve25519(StaticSecret);
+
+// StaticSecret zeroizes itself on drop.
+impl ZeroizeOnDrop for Curve25519 {}
 
 impl fmt::Debug for Curve25519 {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -88,7 +88,6 @@ impl Curve25519 {
 
 /// Secret key for ECDH
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum SecretKey {
     /// ECDH with Curve25519
@@ -114,6 +113,9 @@ pub enum SecretKey {
         secret: p521::SecretKey,
     },
 }
+
+// Inner key types zeroize themselves on drop.
+impl ZeroizeOnDrop for SecretKey {}
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

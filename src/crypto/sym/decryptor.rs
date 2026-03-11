@@ -14,11 +14,12 @@ use log::debug;
 use sha1::{Digest, Sha1};
 use twofish::Twofish;
 
+use zeroize::Zeroizing;
+
 use crate::{
     crypto::sym::SymmetricKeyAlgorithm,
     errors::{bail, Result},
     util::{fill_buffer, fill_buffer_bytes},
-    zeroize::Zeroizing,
 };
 
 const MDC_LEN: usize = 22;

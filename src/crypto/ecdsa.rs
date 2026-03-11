@@ -4,7 +4,6 @@ use ecdsa::SigningKey;
 use p521::NistP521;
 use rand::{CryptoRng, Rng};
 use signature::hazmat::{PrehashSigner, PrehashVerifier};
-#[cfg(feature = "zeroize")]
 use zeroize::ZeroizeOnDrop;
 
 use crate::{
@@ -15,7 +14,6 @@ use crate::{
 };
 
 #[derive(Clone, PartialEq, Eq)]
-#[cfg_attr(feature = "zeroize", derive(ZeroizeOnDrop))]
 #[cfg_attr(test, derive(proptest_derive::Arbitrary))]
 pub enum SecretKey {
     P256(#[cfg_attr(test, proptest(strategy = "tests::key_p256_gen()"))] p256::SecretKey),
@@ -26,10 +24,12 @@ pub enum SecretKey {
     Unsupported {
         /// The secret point.
         x: Vec<u8>,
-        #[cfg_attr(feature = "zeroize", zeroize(skip))]
         curve: ECCCurve,
     },
 }
+
+// Inner key types zeroize themselves on drop.
+impl ZeroizeOnDrop for SecretKey {}
 
 impl fmt::Debug for SecretKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
